@@ -1,5 +1,7 @@
 # SolBnB
 
+[![Free image uploader - myimgs.org](https://myimgs.org/storage/images/79208/Screenshot2026-11-06at15319PM.png)](https://myimgs.org/)
+
 A decentralized short-term rental demo on **Solana Devnet**. Connect a wallet, browse mock San Francisco stays on OpenStreetMap, pay **0.001 SOL**, and unlock a door code + Wi-Fi password after on-chain confirmation.
 
 Built with **Fresh (Deno + Preact)**, **Leaflet / OSM**, and **@solana/web3.js**.
