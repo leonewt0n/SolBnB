@@ -1,7 +1,12 @@
 /** Shared public constants safe for islands + server. */
 
-export const PRICE_LAMPORTS = 1_000; // 0.000001 SOL
-export const PRICE_SOL_LABEL = "0.000001 SOL";
+/**
+ * 0.001 SOL — tiny for a demo, but above Solana's rent-exempt minimum
+ * (~0.00089 SOL) so the first payment can create the merchant account
+ * if it does not exist yet on Devnet.
+ */
+export const PRICE_LAMPORTS = 1_000_000;
+export const PRICE_SOL_LABEL = "0.001 SOL";
 
 export const SF_CENTER = { lat: 37.7749, lng: -122.4194 } as const;
 export const DEVNET_RPC_DEFAULT = "https://api.devnet.solana.com";

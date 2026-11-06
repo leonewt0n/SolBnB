@@ -17,6 +17,9 @@ export default define.page(function App({ Component }) {
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         />
         <link rel="stylesheet" href="/styles.css" />
+        {/* Browser IIFE — keeps @solana/web3.js out of the Fresh island bundle */}
+        <script src="https://unpkg.com/@solana/web3.js@1.98.2/lib/index.iife.min.js">
+        </script>
       </head>
       <body>
         <Component />
