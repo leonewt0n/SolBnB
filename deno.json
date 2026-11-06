@@ -1,0 +1,52 @@
+{
+  "nodeModulesDir": "manual",
+  "tasks": {
+    "check": "deno fmt --check . && deno lint . && deno check",
+    "dev": "deno run -A --env-file=.env --watch=static/,routes/,islands/,lib/,data/ dev.ts",
+    "build": "deno run -A --env-file=.env dev.ts build",
+    "start": "deno serve -A --env-file=.env _fresh/server.js",
+    "update": "deno run -A -r jsr:@fresh/update ."
+  },
+  "lint": {
+    "rules": {
+      "tags": ["fresh", "recommended"]
+    }
+  },
+  "exclude": ["**/_fresh/*"],
+  "imports": {
+    "@/": "./",
+    "@solana/web3.js": "npm:@solana/web3.js@1.98.2",
+    "@types/leaflet": "npm:@types/leaflet@1.9.16",
+    "buffer": "npm:buffer@6.0.3",
+    "fresh": "jsr:@fresh/core@^2.3.3",
+    "leaflet": "npm:leaflet@1.9.4",
+    "preact": "npm:preact@^10.29.1",
+    "@preact/signals": "npm:@preact/signals@^2.9.0"
+  },
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.asynciterable",
+      "dom.iterable",
+      "deno.ns"
+    ],
+    "jsx": "precompile",
+    "jsxImportSource": "preact",
+    "jsxPrecompileSkipElements": [
+      "a",
+      "img",
+      "source",
+      "body",
+      "html",
+      "head",
+      "title",
+      "meta",
+      "script",
+      "link",
+      "style",
+      "base",
+      "noscript",
+      "template"
+    ]
+  }
+}
