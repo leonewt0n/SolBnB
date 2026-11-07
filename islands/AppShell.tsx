@@ -1,5 +1,5 @@
 import type { PublicListing } from "../data/listings.public.ts";
-import { listings } from "./store.ts";
+import { listings, placeLabel } from "./store.ts";
 import BookingModal from "./BookingModal.tsx";
 import ListingRail from "./ListingRail.tsx";
 import MapView from "./MapView.tsx";
@@ -13,13 +13,12 @@ type Props = {
 
 /**
  * Single island keeps shared Preact signals in one client bundle.
- * Solana web3 is loaded lazily from esm.sh inside pay.ts (not at module top-level)
- * so map hydration is not blocked by Node bare specifiers.
+ * Solana web3 is loaded from the CDN IIFE (see pay.ts / _app.tsx).
  */
 export default function AppShell(
   { initialListings, merchantPubkey }: Props,
 ) {
-  if (listings.value !== initialListings) {
+  if (listings.value.length === 0) {
     listings.value = initialListings;
   }
 
@@ -28,7 +27,9 @@ export default function AppShell(
       <header class="topbar">
         <div class="topbar__brand">
           <span class="topbar__mark">SolBnB</span>
-          <span class="topbar__tag">Devnet stays in San Francisco</span>
+          <span class="topbar__tag">
+            Devnet stays · {placeLabel.value}
+          </span>
         </div>
         <div class="topbar__tools">
           <SearchBar />

@@ -3,7 +3,7 @@ import { IS_BROWSER } from "fresh/runtime";
 import type { Map as LeafletMap, Marker } from "leaflet";
 import type { PublicListing } from "../data/listings.public.ts";
 import { SF_CENTER } from "../lib/constants.ts";
-import { filteredListings, selectListing } from "./store.ts";
+import { filteredListings, mapTarget, selectListing } from "./store.ts";
 
 type LeafletNS = typeof import("leaflet");
 
@@ -18,6 +18,7 @@ export default function MapView() {
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<Marker[]>([]);
   const visible = filteredListings.value;
+  const target = mapTarget.value;
 
   useEffect(() => {
     if (!IS_BROWSER || !containerRef.current || mapRef.current) return;
@@ -31,7 +32,6 @@ export default function MapView() {
 
         if (cancelled || !containerRef.current) return;
 
-        // Leaflet needs a sized container; force a layout pass before init.
         const el = containerRef.current;
         if (el.clientHeight === 0) {
           el.style.minHeight = "60vh";
@@ -51,7 +51,6 @@ export default function MapView() {
         }).addTo(map);
 
         mapRef.current = map;
-        // Invalidate size after paint — absolute layouts often report 0 on first tick.
         requestAnimationFrame(() => {
           map.invalidateSize();
           syncMarkers(L, filteredListings.value);
@@ -68,6 +67,13 @@ export default function MapView() {
       markersRef.current = [];
     };
   }, []);
+
+  useEffect(() => {
+    if (!IS_BROWSER || !mapRef.current || !target) return;
+    mapRef.current.flyTo([target.lat, target.lng], target.zoom, {
+      duration: 1.2,
+    });
+  }, [target]);
 
   useEffect(() => {
     if (!IS_BROWSER || !mapRef.current) return;
@@ -105,13 +111,12 @@ export default function MapView() {
     }
   }
 
-  // Same DOM on server + client so hydration can attach the ref.
   return (
     <div
       class="map-shell"
       ref={containerRef}
       role="application"
-      aria-label="San Francisco rentals map"
+      aria-label="USA rentals map"
     />
   );
 }

@@ -112,11 +112,17 @@ a {
 }
 
 .search {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem 0.6rem;
+  align-items: center;
   flex: 1;
-  max-width: 28rem;
+  max-width: 34rem;
+  position: relative;
+}
+
+.search__field {
+  display: contents;
 }
 
 .search__label {
@@ -140,6 +146,26 @@ a {
 .search__input:focus {
   border-color: var(--sea);
   box-shadow: 0 0 0 3px rgba(15, 106, 106, 0.18);
+}
+
+.search__btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  background: var(--ink);
+  color: #f7fbfb;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.search__btn:hover:not(:disabled) {
+  background: var(--sea-deep);
+}
+
+.search__error {
+  grid-column: 1 / -1;
+  font-size: 0.78rem;
+  color: #9b1c1c;
 }
 
 .wallet-btn {
