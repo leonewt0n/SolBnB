@@ -13,6 +13,7 @@ type Body = {
   name?: string;
   neighborhood?: string;
   areaCode?: string;
+  description?: string;
   beds?: number;
   lat?: number;
   lng?: number;
@@ -57,12 +58,21 @@ export const handler = define.handlers({
       return Response.json({ error: "Credential too long" }, { status: 400 });
     }
 
+    const description = body.description?.trim() ?? "";
+    if (description.length > 500) {
+      return Response.json(
+        { error: "Description must be 500 characters or fewer" },
+        { status: 400 },
+      );
+    }
+
     const hostPubkey = body.hostPubkey?.trim();
     const listing: PublicListing = {
       id: listingId,
       name,
       neighborhood: body.neighborhood?.trim() || "Host stay",
       areaCode: body.areaCode?.trim() || "00000",
+      ...(description ? { description } : {}),
       lat,
       lng,
       priceLamports: PRICE_LAMPORTS,

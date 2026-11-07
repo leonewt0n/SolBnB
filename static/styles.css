@@ -472,12 +472,20 @@ a {
   color: rgba(18, 33, 43, 0.7);
 }
 
-.listing-form__field input {
+.listing-form__field input,
+.listing-form__field textarea {
   border: 1px solid rgba(18, 33, 43, 0.14);
   border-radius: 12px;
   padding: 0.65rem 0.7rem;
   background: #fff;
   font: inherit;
+  resize: vertical;
+}
+
+.listing-form__count {
+  justify-self: end;
+  font-size: 0.72rem;
+  color: rgba(18, 33, 43, 0.5);
 }
 
 .account-box {

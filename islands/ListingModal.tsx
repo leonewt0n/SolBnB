@@ -11,6 +11,8 @@ import {
 } from "./store.ts";
 import { commitSecrets, createListingOnChain } from "./createListing.ts";
 
+const DESCRIPTION_MAX = 500;
+
 type Props = {
   listingProgramId?: string;
 };
@@ -22,8 +24,7 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
   const connected = !!walletAddress.value;
 
   const [name, setName] = useState("");
-  const [neighborhood, setNeighborhood] = useState(placeLabel.value);
-  const [areaCode, setAreaCode] = useState("");
+  const [description, setDescription] = useState("");
   const [beds, setBeds] = useState(1);
   const [doorCode, setDoorCode] = useState("");
   const [wifiPassword, setWifiPassword] = useState("");
@@ -44,6 +45,10 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
     }
     if (!name.trim()) {
       setError("Give your stay a name.");
+      return;
+    }
+    if (description.trim().length > DESCRIPTION_MAX) {
+      setError(`Description must be ${DESCRIPTION_MAX} characters or fewer.`);
       return;
     }
     if (!doorCode.trim() || !wifiPassword.trim()) {
@@ -79,11 +84,13 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
       const signature = result.signature;
 
       const hostPubkey = walletAddress.value ?? undefined;
+      const trimmedDescription = description.trim().slice(0, DESCRIPTION_MAX);
       const listingPayload = {
         listingId,
         name: name.trim(),
-        neighborhood: neighborhood.trim() || placeLabel.value,
-        areaCode: areaCode.trim() || "00000",
+        neighborhood: placeLabel.value || "Host stay",
+        areaCode: "00000",
+        description: trimmedDescription,
         beds,
         lat: pin.lat,
         lng: pin.lng,
@@ -112,6 +119,7 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
         name: listingPayload.name,
         neighborhood: listingPayload.neighborhood,
         areaCode: listingPayload.areaCode,
+        description: listingPayload.description,
         beds,
         lat: pin.lat,
         lng: pin.lng,
@@ -177,41 +185,33 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
           </label>
 
           <label class="listing-form__field">
-            <span>Neighborhood</span>
-            <input
-              type="text"
-              placeholder="Mission"
-              value={neighborhood}
+            <span>Description</span>
+            <textarea
+              placeholder="Quiet spot with great light, walkable cafes, and easy transit."
+              value={description}
+              maxLength={DESCRIPTION_MAX}
+              rows={4}
               onInput={(e) =>
-                setNeighborhood((e.target as HTMLInputElement).value)}
+                setDescription((e.target as HTMLTextAreaElement).value)}
             />
+            <span class="listing-form__count">
+              {description.length}/{DESCRIPTION_MAX}
+            </span>
           </label>
 
-          <div class="dates">
-            <label class="dates__field">
-              <span>ZIP / area code</span>
-              <input
-                type="text"
-                placeholder="94110"
-                value={areaCode}
-                onInput={(e) =>
-                  setAreaCode((e.target as HTMLInputElement).value)}
-              />
-            </label>
-            <label class="dates__field">
-              <span>Beds</span>
-              <input
-                type="number"
-                min={1}
-                max={8}
-                value={beds}
-                onInput={(e) =>
-                  setBeds(
-                    Number((e.target as HTMLInputElement).value) || 1,
-                  )}
-              />
-            </label>
-          </div>
+          <label class="listing-form__field">
+            <span>Beds</span>
+            <input
+              type="number"
+              min={1}
+              max={8}
+              value={beds}
+              onInput={(e) =>
+                setBeds(
+                  Number((e.target as HTMLInputElement).value) || 1,
+                )}
+            />
+          </label>
 
           <label class="listing-form__field">
             <span>Door passkey</span>

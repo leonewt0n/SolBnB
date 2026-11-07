@@ -106,6 +106,9 @@ export default function BookingModal({ merchantPubkey }: Props) {
           {" "}
           flat
         </p>
+        {listing.description && (
+          <p class="modal__hint">{listing.description}</p>
+        )}
 
         <div class="dates">
           <label class="dates__field">

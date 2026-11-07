@@ -5,6 +5,8 @@ export type PublicListing = {
   name: string;
   areaCode: string;
   neighborhood: string;
+  /** Host-written stay blurb (create form; max 500 chars). */
+  description?: string;
   lat: number;
   lng: number;
   priceLamports: number;

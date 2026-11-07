@@ -243,6 +243,7 @@ export function addHostListing(input: {
   name: string;
   neighborhood: string;
   areaCode: string;
+  description?: string;
   beds: number;
   lat: number;
   lng: number;
@@ -254,11 +255,13 @@ export function addHostListing(input: {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 20) || "stay";
+  const description = input.description?.trim().slice(0, 500);
   const listing: PublicListing = {
     id: input.id ?? `host-${slug}-${Date.now().toString(36)}`,
     name: input.name.trim(),
     neighborhood: input.neighborhood.trim() || placeLabel.value,
     areaCode: input.areaCode.trim() || "00000",
+    ...(description ? { description } : {}),
     lat: input.lat,
     lng: input.lng,
     priceLamports: PRICE_LAMPORTS,
