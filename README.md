@@ -9,7 +9,7 @@ Built with **Fresh (Deno + Preact)**, **Leaflet / OSM**, and **@solana/web3.js**
 ## Prerequisites
 
 - [Deno](https://deno.land/) 2.x
-- Phantom or Backpack browser wallet switched to **Devnet**
+- Phantom or Backpack browser wallet switched to [**Devnet**](https://docs.phantom.com/developer-powertools/testnet-mode) 
 - Devnet SOL from the [Solana faucet](https://faucet.solana.com/)
 
 ## Setup
