@@ -3,7 +3,7 @@ import { getHostRecord } from "../../data/hostStore.ts";
 import { getSecrets } from "../../data/listings.secrets.ts";
 import { MIN_PRICE_LAMPORTS } from "../../lib/constants.ts";
 import { fetchOnChainListing } from "../../lib/onchainListings.ts";
-import { getConnection } from "../../lib/solana.ts";
+import { getConnection, getMerchantWallet } from "../../lib/solana.ts";
 import { verifyBookingPayment } from "../../lib/verifyPayment.ts";
 
 type UnlockBody = {
@@ -51,11 +51,14 @@ export const handler = define.handlers({
       );
     }
 
+    const merchantPubkey = getMerchantWallet();
+
     try {
       const ok = await verifyBookingPayment(
         connection,
         signature,
         hostPubkey,
+        merchantPubkey,
         priceLamports,
       );
       if (!ok) {

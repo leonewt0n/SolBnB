@@ -14,7 +14,11 @@ import {
   walletAddress,
 } from "./store.ts";
 
-export default function BookingModal() {
+type Props = {
+  merchantPubkey: string;
+};
+
+export default function BookingModal({ merchantPubkey }: Props) {
   const listing = selected.value;
   if (!listing) return null;
 
@@ -26,6 +30,7 @@ export default function BookingModal() {
     checkOut.value > checkIn.value &&
     !!walletAddress.value &&
     !!hostPubkey &&
+    !!merchantPubkey &&
     txStatus.value !== "signing" &&
     txStatus.value !== "confirming" &&
     txStatus.value !== "done";
@@ -39,7 +44,14 @@ export default function BookingModal() {
       if (!hostPubkey) {
         throw new Error("Listing host unknown — cannot pay.");
       }
-      const signature = await bookStay(hostPubkey, priceLamports);
+      if (!merchantPubkey) {
+        throw new Error("Merchant wallet is not configured.");
+      }
+      const signature = await bookStay(
+        hostPubkey,
+        merchantPubkey,
+        priceLamports,
+      );
       lastSignature.value = signature;
       txStatus.value = "confirming";
 
@@ -108,7 +120,7 @@ export default function BookingModal() {
         <p class="modal__meta">
           {listing.beds} bed{listing.beds > 1 ? "s" : ""} · {priceLabel} flat
           {" "}
-          to host
+          (90% host · 10% platform)
         </p>
         {listing.description && (
           <p class="modal__hint">{listing.description}</p>

@@ -8,6 +8,9 @@ export const PRICE_LAMPORTS = 1_000_000;
 export const MIN_PRICE_LAMPORTS = PRICE_LAMPORTS;
 export const PRICE_SOL_LABEL = "0.001 SOL";
 
+/** Platform cut of each booking (basis points). 1000 = 10%. */
+export const PLATFORM_FEE_BPS = 1000;
+
 export function lamportsToSolLabel(lamports: number): string {
   const sol = lamports / 1_000_000_000;
   const text = Number.isInteger(sol)
@@ -18,6 +21,19 @@ export function lamportsToSolLabel(lamports: number): string {
 
 export function solToLamports(sol: number): number {
   return Math.round(sol * 1_000_000_000);
+}
+
+/** Split listing price: 10% merchant platform fee, 90% host. */
+export function splitBookingPayment(priceLamports: number): {
+  hostLamports: number;
+  platformLamports: number;
+} {
+  const total = Math.floor(priceLamports);
+  const platformLamports = Math.floor((total * PLATFORM_FEE_BPS) / 10_000);
+  return {
+    platformLamports,
+    hostLamports: total - platformLamports,
+  };
 }
 
 export const SF_CENTER = { lat: 37.7749, lng: -122.4194 } as const;

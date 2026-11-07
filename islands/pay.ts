@@ -1,4 +1,8 @@
-import { DEVNET_RPC_DEFAULT, MIN_PRICE_LAMPORTS } from "../lib/constants.ts";
+import {
+  DEVNET_RPC_DEFAULT,
+  MIN_PRICE_LAMPORTS,
+  splitBookingPayment,
+} from "../lib/constants.ts";
 
 /** Subset of @solana/web3.js used by the booking flow (from CDN IIFE). */
 type SolanaWeb3 = {
@@ -181,9 +185,13 @@ export async function disconnectWallet(): Promise<void> {
   }
 }
 
-/** Pay the listing host the listing's on-chain price. */
+/**
+ * Pay listing price: 90% to host, 10% to merchant (platform fee).
+ * Both transfers in one transaction.
+ */
 export async function bookStay(
   hostPubkey: string,
+  merchantPubkey: string,
   priceLamports: number,
 ): Promise<string> {
   const provider = getWalletProvider();
@@ -192,6 +200,9 @@ export async function bookStay(
   }
   if (!hostPubkey) {
     throw new Error("Listing host is unknown — cannot route payment.");
+  }
+  if (!merchantPubkey) {
+    throw new Error("Merchant wallet is not configured.");
   }
   if (
     !Number.isFinite(priceLamports) ||
@@ -209,7 +220,11 @@ export async function bookStay(
 
   const connection = new Connection(DEVNET_RPC_DEFAULT, "confirmed");
   const from = new PublicKey(provider.publicKey.toString());
-  const to = new PublicKey(hostPubkey);
+  const host = new PublicKey(hostPubkey);
+  const merchant = new PublicKey(merchantPubkey);
+  const { hostLamports, platformLamports } = splitBookingPayment(
+    priceLamports,
+  );
 
   const { blockhash, lastValidBlockHeight } = await connection
     .getLatestBlockhash("confirmed");
@@ -218,13 +233,36 @@ export async function bookStay(
     feePayer: from,
     blockhash,
     lastValidBlockHeight,
-  }).add(
-    SystemProgram.transfer({
-      fromPubkey: from,
-      toPubkey: to,
-      lamports: Math.floor(priceLamports),
-    }),
-  );
+  });
+
+  if (hostPubkey === merchantPubkey) {
+    tx.add(
+      SystemProgram.transfer({
+        fromPubkey: from,
+        toPubkey: host,
+        lamports: Math.floor(priceLamports),
+      }),
+    );
+  } else {
+    if (hostLamports > 0) {
+      tx.add(
+        SystemProgram.transfer({
+          fromPubkey: from,
+          toPubkey: host,
+          lamports: hostLamports,
+        }),
+      );
+    }
+    if (platformLamports > 0) {
+      tx.add(
+        SystemProgram.transfer({
+          fromPubkey: from,
+          toPubkey: merchant,
+          lamports: platformLamports,
+        }),
+      );
+    }
+  }
 
   const { signature } = await provider.signAndSendTransaction(tx);
 
