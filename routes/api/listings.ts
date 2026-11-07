@@ -36,7 +36,26 @@ export const handler = define.handlers({
     const byId = new Map(hosted.map((l) => [l.id, l]));
     for (const l of onChain) {
       if (deleted.has(l.id)) continue;
-      byId.set(l.id, l);
+      const prev = byId.get(l.id);
+      byId.set(
+        l.id,
+        prev
+          ? {
+            ...prev,
+            ...l,
+            hostPubkey: l.hostPubkey ?? prev.hostPubkey,
+            description: l.description ?? prev.description,
+            neighborhood: l.neighborhood === "On-chain" && prev.neighborhood
+              ? prev.neighborhood
+              : l.neighborhood,
+            areaCode: l.areaCode === "00000" && prev.areaCode
+              ? prev.areaCode
+              : l.areaCode,
+            beds: l.beds === 1 && prev.beds > 1 ? prev.beds : l.beds,
+            priceLamports: l.priceLamports || prev.priceLamports,
+          }
+          : l,
+      );
     }
     for (const id of deleted) byId.delete(id);
 

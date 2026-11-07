@@ -59,13 +59,29 @@ pub mod solbnb {
         Ok(())
     }
 
-    /// Host updates the flat booking price (paid to host on book).
-    pub fn update_price(ctx: Context<UpdatePrice>, price_lamports: u64) -> Result<()> {
+    /// Host updates public listing fields + secrets commitment.
+    pub fn update_listing(
+        ctx: Context<UpdateListing>,
+        name: String,
+        lat: f64,
+        lng: f64,
+        secrets_commitment: [u8; 32],
+        price_lamports: u64,
+    ) -> Result<()> {
+        require!(!name.is_empty() && name.len() <= 64, SolbnbError::BadName);
+        require!((-90.0..=90.0).contains(&lat), SolbnbError::BadCoords);
+        require!((-180.0..=180.0).contains(&lng), SolbnbError::BadCoords);
         require!(
             price_lamports >= MIN_PRICE_LAMPORTS,
             SolbnbError::BadPrice
         );
-        ctx.accounts.listing.price_lamports = price_lamports;
+
+        let listing = &mut ctx.accounts.listing;
+        listing.name = name;
+        listing.lat = lat;
+        listing.lng = lng;
+        listing.secrets_commitment = secrets_commitment;
+        listing.price_lamports = price_lamports;
         Ok(())
     }
 
@@ -101,7 +117,7 @@ pub struct InitializeListing<'info> {
 }
 
 #[derive(Accounts)]
-pub struct UpdatePrice<'info> {
+pub struct UpdateListing<'info> {
     #[account(
         mut,
         seeds = [b"listing", host.key().as_ref(), &listing.nonce.to_le_bytes()],

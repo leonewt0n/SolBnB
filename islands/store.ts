@@ -69,6 +69,16 @@ function mergeListing(
     ...prev,
     ...next,
     hostPubkey: next.hostPubkey ?? prev.hostPubkey,
+    // Chain stubs use thin defaults — keep richer host-store metadata.
+    description: next.description ?? prev.description,
+    neighborhood: next.neighborhood === "On-chain" && prev.neighborhood
+      ? prev.neighborhood
+      : next.neighborhood,
+    areaCode: next.areaCode === "00000" && prev.areaCode
+      ? prev.areaCode
+      : next.areaCode,
+    beds: next.beds === 1 && prev.beds > 1 ? prev.beds : next.beds,
+    priceLamports: next.priceLamports || prev.priceLamports,
   };
 }
 
@@ -283,18 +293,16 @@ export function addHostListing(input: {
   return listing;
 }
 
-/** Mirror an on-chain price change into the local host list. */
-export function updateHostListingPrice(
-  listingId: string,
-  priceLamports: number,
-): void {
-  const next = hostListings.value.map((l) =>
-    l.id === listingId ? { ...l, priceLamports } : l
-  );
+/** Replace a host listing in the local mirror (after create/update). */
+export function upsertLocalHostListing(listing: PublicListing): void {
+  const next = [
+    listing,
+    ...hostListings.value.filter((l) => l.id !== listing.id),
+  ];
   hostListings.value = next;
   writeHostStorage(next);
-  if (selected.value?.id === listingId) {
-    selected.value = { ...selected.value, priceLamports };
+  if (selected.value?.id === listing.id) {
+    selected.value = listing;
   }
 }
 

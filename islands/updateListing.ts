@@ -1,12 +1,16 @@
 /**
- * Builds + sends `update_price` against the SolBnB Anchor program.
+ * Builds + sends `update_listing` against the SolBnB Anchor program.
  */
 import { DEVNET_RPC_DEFAULT, MIN_PRICE_LAMPORTS } from "../lib/constants.ts";
 import { getWalletProvider, loadWeb3 } from "./pay.ts";
 
-export type UpdatePriceInput = {
+export type UpdateListingInput = {
   programId: string;
   listingPda: string;
+  name: string;
+  lat: number;
+  lng: number;
+  secretsCommitment: Uint8Array;
   priceLamports: number;
 };
 
@@ -16,10 +20,24 @@ async function sha256(data: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(digest);
 }
 
-async function updatePriceDiscriminator(): Promise<Uint8Array> {
+async function updateListingDiscriminator(): Promise<Uint8Array> {
   const enc = new TextEncoder();
-  const hash = await sha256(enc.encode("global:update_price"));
+  const hash = await sha256(enc.encode("global:update_listing"));
   return hash.slice(0, 8);
+}
+
+function encodeString(value: string): Uint8Array {
+  const body = new TextEncoder().encode(value);
+  const out = new Uint8Array(4 + body.length);
+  new DataView(out.buffer).setUint32(0, body.length, true);
+  out.set(body, 4);
+  return out;
+}
+
+function encodeF64(n: number): Uint8Array {
+  const buf = new ArrayBuffer(8);
+  new DataView(buf).setFloat64(0, n, true);
+  return new Uint8Array(buf);
 }
 
 function encodeU64(n: bigint): Uint8Array {
@@ -28,8 +46,19 @@ function encodeU64(n: bigint): Uint8Array {
   return out;
 }
 
-export async function updateListingPriceOnChain(
-  input: UpdatePriceInput,
+function concatBytes(...parts: Uint8Array[]): Uint8Array {
+  const total = parts.reduce((sum, p) => sum + p.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const p of parts) {
+    out.set(p, offset);
+    offset += p.length;
+  }
+  return out;
+}
+
+export async function updateListingOnChain(
+  input: UpdateListingInput,
 ): Promise<{ signature: string }> {
   const provider = getWalletProvider();
   if (!provider?.publicKey) {
@@ -38,11 +67,17 @@ export async function updateListingPriceOnChain(
   if (!input.programId) {
     throw new Error("Listing program is not configured (LISTING_PROGRAM_ID).");
   }
+  if (!input.name.trim() || input.name.trim().length > 64) {
+    throw new Error("Name must be 1–64 characters.");
+  }
   if (
     !Number.isFinite(input.priceLamports) ||
     input.priceLamports < MIN_PRICE_LAMPORTS
   ) {
     throw new Error("Price must be at least 0.001 SOL.");
+  }
+  if (input.secretsCommitment.length !== 32) {
+    throw new Error("secretsCommitment must be 32 bytes.");
   }
 
   const {
@@ -56,9 +91,14 @@ export async function updateListingPriceOnChain(
   const host = new PublicKey(provider.publicKey.toString());
   const listing = new PublicKey(input.listingPda);
 
-  const data = new Uint8Array(8 + 8);
-  data.set(await updatePriceDiscriminator(), 0);
-  data.set(encodeU64(BigInt(Math.floor(input.priceLamports))), 8);
+  const data = concatBytes(
+    await updateListingDiscriminator(),
+    encodeString(input.name.trim().slice(0, 64)),
+    encodeF64(input.lat),
+    encodeF64(input.lng),
+    input.secretsCommitment,
+    encodeU64(BigInt(Math.floor(input.priceLamports))),
+  );
 
   const ix = new TransactionInstruction({
     keys: [
@@ -85,7 +125,7 @@ export async function updateListingPriceOnChain(
     "confirmed",
   );
   if (confirmation.value.err) {
-    throw new Error("Update-price transaction failed on-chain.");
+    throw new Error("Update-listing transaction failed on-chain.");
   }
 
   return { signature };
