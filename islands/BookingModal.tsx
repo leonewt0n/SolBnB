@@ -25,10 +25,13 @@ export default function BookingModal({ merchantPubkey }: Props) {
   const priceLamports = listing.priceLamports || PRICE_LAMPORTS;
   const priceLabel = lamportsToSolLabel(priceLamports);
   const hostPubkey = listing.hostPubkey;
+  const wallet = walletAddress.value;
+  const isOwner = !!wallet && !!hostPubkey && wallet === hostPubkey;
 
-  const canBook = !!checkIn.value && !!checkOut.value &&
+  const canBook = !isOwner &&
+    !!checkIn.value && !!checkOut.value &&
     checkOut.value > checkIn.value &&
-    !!walletAddress.value &&
+    !!wallet &&
     !!hostPubkey &&
     !!merchantPubkey &&
     txStatus.value !== "signing" &&
@@ -38,6 +41,12 @@ export default function BookingModal({ merchantPubkey }: Props) {
   async function onBook() {
     txError.value = null;
     unlock.value = null;
+
+    if (isOwner) {
+      txError.value = "You own this stay — booking is disabled.";
+      return;
+    }
+
     txStatus.value = "signing";
 
     try {
@@ -152,16 +161,28 @@ export default function BookingModal({ merchantPubkey }: Props) {
           </label>
         </div>
 
-        {!walletAddress.value && (
-          <p class="modal__hint">Connect a Devnet wallet to book this stay.</p>
-        )}
-        {walletAddress.value && !hostPubkey && (
-          <p class="modal__hint">
-            This listing has no host wallet on record — booking disabled.
-          </p>
-        )}
+        {isOwner
+          ? (
+            <p class="modal__hint">
+              This is your listing. You can't book your own stay — manage it
+              from the dashboard.
+            </p>
+          )
+          : !wallet
+          ? (
+            <p class="modal__hint">
+              Connect a Devnet wallet to book this stay.
+            </p>
+          )
+          : !hostPubkey
+          ? (
+            <p class="modal__hint">
+              This listing has no host wallet on record — booking disabled.
+            </p>
+          )
+          : null}
 
-        {txStatus.value !== "done" && (
+        {!isOwner && txStatus.value !== "done" && (
           <button
             class="cta"
             type="button"
