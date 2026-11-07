@@ -259,7 +259,8 @@ export default function Dashboard(
                       <div>
                         <p class="dashboard__row-name">{item.name}</p>
                         <p class="dashboard__row-meta">
-                          {item.beds} {item.beds === 1 ? "bed" : "beds"}
+                          {item.neighborhood} · {item.beds}{" "}
+                          {item.beds === 1 ? "bed" : "beds"}
                         </p>
                       </div>
                       <div class="dashboard__row-actions">

@@ -65,7 +65,7 @@ export const handler = define.handlers({
 
     if (!hits.length) {
       return Response.json(
-        { error: "No USA matches — try a city or place name" },
+        { error: "No USA matches — try a city, neighborhood, or ZIP" },
         { status: 404 },
       );
     }
