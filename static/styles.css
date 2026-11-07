@@ -677,6 +677,29 @@ a {
   color: var(--coral);
 }
 
+.dashboard__delete {
+  border: 1px solid rgba(155, 28, 28, 0.28);
+  background: rgba(155, 28, 28, 0.06);
+  color: #9b1c1c;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dashboard__delete:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.dashboard__error {
+  margin: 0 0 0.75rem;
+  color: #9b1c1c;
+  font-size: 0.9rem;
+}
+
 .modal__error {
   margin-top: 0.85rem;
   color: #9b1c1c;

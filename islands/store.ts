@@ -277,6 +277,16 @@ export function addHostListing(input: {
   return listing;
 }
 
+/** Drop a host listing from local mirror (after on-chain close). */
+export function removeHostListing(listingId: string): void {
+  const next = hostListings.value.filter((l) => l.id !== listingId);
+  hostListings.value = next;
+  writeHostStorage(next);
+  if (selected.value?.id === listingId) {
+    selectListing(null);
+  }
+}
+
 /** Fly map to a USA place — does not invent mock pins. */
 export async function searchUsaPlace(rawQuery: string): Promise<void> {
   const q = rawQuery.trim();

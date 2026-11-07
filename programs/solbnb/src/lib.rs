@@ -47,6 +47,11 @@ pub mod solbnb {
         listing.bump = ctx.bumps.listing;
         Ok(())
     }
+
+    /// Host closes their Listing PDA and reclaims rent.
+    pub fn close_listing(_ctx: Context<CloseListing>) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -73,10 +78,27 @@ pub struct InitializeListing<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+pub struct CloseListing<'info> {
+    #[account(
+        mut,
+        close = host,
+        seeds = [b"listing", host.key().as_ref(), &listing.nonce.to_le_bytes()],
+        bump = listing.bump,
+        has_one = host @ SolbnbError::Unauthorized
+    )]
+    pub listing: Account<'info, Listing>,
+
+    #[account(mut)]
+    pub host: Signer<'info>,
+}
+
 #[error_code]
 pub enum SolbnbError {
     #[msg("Name must be 1..=64 chars")]
     BadName,
     #[msg("lat/lng out of range")]
     BadCoords,
+    #[msg("Only the listing host can close this account")]
+    Unauthorized,
 }

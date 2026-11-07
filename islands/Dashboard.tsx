@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { IS_BROWSER } from "fresh/runtime";
 import type { PublicListing } from "../data/listings.public.ts";
 import { DEFAULT_LISTING_PROGRAM_ID } from "../lib/constants.ts";
+import { closeListingOnChain } from "./deleteListing.ts";
 import {
   type BookingRecord,
   bookingsForWallet,
@@ -9,6 +10,7 @@ import {
   hydrateWalletAddress,
   listingsForHost,
   mergeHostListings,
+  removeHostListing,
   walletAddress,
 } from "./store.ts";
 import WalletButton from "./WalletButton.tsx";
@@ -30,6 +32,81 @@ export default function Dashboard(
   const [listed, setListed] = useState<PublicListing[]>([]);
   const [renting, setRenting] = useState<BookingRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  function refreshOwned() {
+    const wallet = walletAddress.value;
+    setListed(wallet ? listingsForHost(wallet) : []);
+    setRenting(wallet ? bookingsForWallet(wallet) : []);
+  }
+
+  async function onDeleteListing(item: PublicListing) {
+    const wallet = walletAddress.value;
+    if (!wallet) {
+      setDeleteError("Connect your wallet first.");
+      return;
+    }
+    if (item.hostPubkey && item.hostPubkey !== wallet) {
+      setDeleteError("Only the listing host can delete this stay.");
+      return;
+    }
+    if (!listingProgramId) {
+      setDeleteError("Listing program is not configured.");
+      return;
+    }
+    if (
+      !globalThis.confirm(
+        `Delete "${item.name}"? Removes it from SolBnB and clears door / Wi-Fi secrets.`,
+      )
+    ) {
+      return;
+    }
+
+    setDeleteError(null);
+    setDeletingId(item.id);
+    try {
+      let chainNote: string | null = null;
+      try {
+        await closeListingOnChain({
+          programId: listingProgramId,
+          listingPda: item.id,
+        });
+      } catch (err) {
+        // Tombstone still hides the pin if Devnet program lacks close_listing yet.
+        chainNote = err instanceof Error
+          ? err.message
+          : "On-chain close failed";
+      }
+
+      const res = await fetch("/api/host-secrets", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          listingId: item.id,
+          hostPubkey: wallet,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to clear off-chain secrets");
+      }
+
+      removeHostListing(item.id);
+      refreshOwned();
+      if (chainNote) {
+        setDeleteError(
+          `Removed from SolBnB. On-chain close skipped: ${chainNote}`,
+        );
+      }
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Could not delete listing",
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   useEffect(() => {
     if (!IS_BROWSER) return;
@@ -59,9 +136,7 @@ export default function Dashboard(
   }, []);
 
   useEffect(() => {
-    const wallet = walletAddress.value;
-    setListed(wallet ? listingsForHost(wallet) : []);
-    setRenting(wallet ? bookingsForWallet(wallet) : []);
+    refreshOwned();
   }, [walletAddress.value, loading]);
 
   const address = walletAddress.value;
@@ -125,46 +200,59 @@ export default function Dashboard(
             )
             : tab === "listed"
             ? (
-              <ul
-                class="dashboard__list"
-                role="tabpanel"
-                id="panel-listed"
-                aria-labelledby="tab-listed"
-              >
-                {listed.length === 0
-                  ? (
-                    <li class="dashboard__row">
-                      <p class="dashboard__row-meta">
-                        No stays hosted by this wallet yet. List one from the
-                        map.
-                      </p>
-                    </li>
-                  )
-                  : listed.map((item) => (
-                    <li key={item.id} class="dashboard__row">
-                      <div>
-                        <p class="dashboard__row-name">{item.name}</p>
+              <>
+                {deleteError && (
+                  <p class="dashboard__error" role="alert">{deleteError}</p>
+                )}
+                <ul
+                  class="dashboard__list"
+                  role="tabpanel"
+                  id="panel-listed"
+                  aria-labelledby="tab-listed"
+                >
+                  {listed.length === 0
+                    ? (
+                      <li class="dashboard__row">
                         <p class="dashboard__row-meta">
-                          {item.neighborhood} · {item.beds}{" "}
-                          {item.beds === 1 ? "bed" : "beds"}
+                          No stays hosted by this wallet yet. List one from the
+                          map.
                         </p>
-                      </div>
-                      <div class="dashboard__row-actions">
-                        <a
-                          class="dashboard__chain-link"
-                          href={explorerAddressUrl(item.id)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Listing
-                        </a>
-                        <span class="dashboard__badge dashboard__badge--active">
-                          active
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-              </ul>
+                      </li>
+                    )
+                    : listed.map((item) => (
+                      <li key={item.id} class="dashboard__row">
+                        <div>
+                          <p class="dashboard__row-name">{item.name}</p>
+                          <p class="dashboard__row-meta">
+                            {item.neighborhood} · {item.beds}{" "}
+                            {item.beds === 1 ? "bed" : "beds"}
+                          </p>
+                        </div>
+                        <div class="dashboard__row-actions">
+                          <a
+                            class="dashboard__chain-link"
+                            href={explorerAddressUrl(item.id)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Listing
+                          </a>
+                          <button
+                            type="button"
+                            class="dashboard__delete"
+                            disabled={deletingId === item.id}
+                            onClick={() => onDeleteListing(item)}
+                          >
+                            {deletingId === item.id ? "Deleting…" : "Delete"}
+                          </button>
+                          <span class="dashboard__badge dashboard__badge--active">
+                            active
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                </ul>
+              </>
             )
             : (
               <ul

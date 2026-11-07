@@ -1,5 +1,9 @@
 import { define } from "../../utils.ts";
-import { upsertHostRecord } from "../../data/hostStore.ts";
+import {
+  deleteHostRecord,
+  getHostRecord,
+  upsertHostRecord,
+} from "../../data/hostStore.ts";
 import { PRICE_LAMPORTS } from "../../lib/constants.ts";
 import type { PublicListing } from "../../data/listings.public.ts";
 
@@ -94,5 +98,40 @@ export const handler = define.handlers({
       commitmentHex: body.commitmentHex ?? null,
       signature: body.signature ?? null,
     });
+  },
+
+  /** Host removes off-chain secrets after closing the Listing PDA. */
+  async DELETE(ctx) {
+    let body: { listingId?: string; hostPubkey?: string };
+    try {
+      body = await ctx.req.json();
+    } catch {
+      return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const listingId = body.listingId?.trim();
+    const hostPubkey = body.hostPubkey?.trim();
+    if (!listingId || !hostPubkey) {
+      return Response.json(
+        { error: "listingId and hostPubkey are required" },
+        { status: 400 },
+      );
+    }
+
+    const existing = await getHostRecord(listingId);
+    if (
+      existing?.listing.hostPubkey &&
+      existing.listing.hostPubkey !== hostPubkey
+    ) {
+      return Response.json(
+        { error: "Only the listing host can delete this record" },
+        { status: 403 },
+      );
+    }
+
+    // Always tombstone so getProgramAccounts cannot resurrect the pin.
+    await deleteHostRecord(listingId);
+
+    return Response.json({ ok: true, listingId });
   },
 });

@@ -1,5 +1,8 @@
 import { define } from "../../utils.ts";
-import { getHostListings } from "../../data/hostStore.ts";
+import {
+  getDeletedListingIds,
+  getHostListings,
+} from "../../data/hostStore.ts";
 import { fetchOnChainListings } from "../../lib/onchainListings.ts";
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -29,8 +32,13 @@ export const handler = define.handlers({
     }
 
     const hosted = await getHostListings();
+    const deleted = new Set(await getDeletedListingIds());
     const byId = new Map(hosted.map((l) => [l.id, l]));
-    for (const l of onChain) byId.set(l.id, l);
+    for (const l of onChain) {
+      if (deleted.has(l.id)) continue;
+      byId.set(l.id, l);
+    }
+    for (const id of deleted) byId.delete(id);
 
     return Response.json([...byId.values()]);
   },
