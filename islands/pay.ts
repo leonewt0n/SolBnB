@@ -42,6 +42,7 @@ type SolanaProvider = {
   isPhantom?: boolean;
   publicKey?: { toString(): string };
   connect(): Promise<{ publicKey: { toString(): string } }>;
+  disconnect?: () => Promise<void>;
   // deno-lint-ignore no-explicit-any
   signAndSendTransaction(transaction: any): Promise<{ signature: string }>;
 };
@@ -108,6 +109,15 @@ export async function connectWallet(): Promise<string> {
   }
   const res = await provider.connect();
   return res.publicKey.toString();
+}
+
+export async function disconnectWallet(): Promise<void> {
+  const provider = getWalletProvider();
+  try {
+    await provider?.disconnect?.();
+  } catch {
+    // Some wallets throw if already disconnected — still clear local state.
+  }
 }
 
 export async function bookStay(merchantPubkey: string): Promise<string> {

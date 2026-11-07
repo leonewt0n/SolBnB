@@ -1,6 +1,8 @@
 import type { PublicListing } from "../data/listings.public.ts";
-import { listings, placeLabel } from "./store.ts";
+import { listings, openListingModal, walletAddress } from "./store.ts";
+import AccountModal from "./AccountModal.tsx";
 import BookingModal from "./BookingModal.tsx";
+import ListingModal from "./ListingModal.tsx";
 import MapView from "./MapView.tsx";
 import SearchBar from "./SearchBar.tsx";
 import WalletButton from "./WalletButton.tsx";
@@ -32,6 +34,19 @@ export default function AppShell(
         </div>
         <div class="topbar__tools">
           <SearchBar />
+          <button
+            type="button"
+            class="listing-btn"
+            onClick={() => {
+              if (!walletAddress.value) {
+                alert("Connect your wallet to list a stay.");
+                return;
+              }
+              openListingModal();
+            }}
+          >
+            List
+          </button>
           <WalletButton />
         </div>
       </header>
@@ -41,6 +56,8 @@ export default function AppShell(
       </main>
 
       <BookingModal merchantPubkey={merchantPubkey} />
+      <ListingModal />
+      <AccountModal />
     </div>
   );
 }

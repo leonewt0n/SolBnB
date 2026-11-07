@@ -5,7 +5,7 @@ import {
   filterListings,
   PUBLIC_LISTINGS,
 } from "../data/listings.public.ts";
-import { SF_CENTER } from "../lib/constants.ts";
+import { PRICE_LAMPORTS, SF_CENTER } from "../lib/constants.ts";
 
 export type TxStatus = "idle" | "signing" | "confirming" | "done" | "error";
 
@@ -31,6 +31,9 @@ export const txStatus = signal<TxStatus>("idle");
 export const txError = signal<string | null>(null);
 export const lastSignature = signal<string | null>(null);
 export const walletAddress = signal<string | null>(null);
+export const walletMenuOpen = signal(false);
+export const accountOpen = signal(false);
+export const listingOpen = signal(false);
 
 export const placeLabel = signal("San Francisco");
 export const mapTarget = signal<MapTarget | null>(null);
@@ -54,6 +57,48 @@ export function resetBookingUi() {
 export function selectListing(listing: PublicListing | null) {
   selected.value = listing;
   resetBookingUi();
+}
+
+export function openAccount() {
+  walletMenuOpen.value = false;
+  accountOpen.value = true;
+}
+
+export function openListingModal() {
+  listingOpen.value = true;
+}
+
+export function logoutWallet() {
+  walletAddress.value = null;
+  walletMenuOpen.value = false;
+  accountOpen.value = false;
+}
+
+export function addHostListing(input: {
+  name: string;
+  neighborhood: string;
+  areaCode: string;
+  beds: number;
+  lat: number;
+  lng: number;
+}): PublicListing {
+  const slug = input.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 20) || "stay";
+  const listing: PublicListing = {
+    id: `host-${slug}-${Date.now().toString(36)}`,
+    name: input.name.trim(),
+    neighborhood: input.neighborhood.trim() || placeLabel.value,
+    areaCode: input.areaCode.trim() || "00000",
+    lat: input.lat,
+    lng: input.lng,
+    priceLamports: PRICE_LAMPORTS,
+    beds: Math.max(1, Math.min(8, input.beds || 1)),
+  };
+  listings.value = [listing, ...listings.value];
+  return listing;
 }
 
 export async function searchUsaPlace(rawQuery: string): Promise<void> {
