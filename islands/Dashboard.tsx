@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { IS_BROWSER } from "fresh/runtime";
 import type { PublicListing } from "../data/listings.public.ts";
+import { DEFAULT_LISTING_PROGRAM_ID } from "../lib/constants.ts";
 import {
   type BookingRecord,
   bookingsForWallet,
@@ -14,7 +15,17 @@ import WalletButton from "./WalletButton.tsx";
 
 type Tab = "listed" | "renting";
 
-export default function Dashboard() {
+type Props = {
+  listingProgramId?: string;
+};
+
+function explorerAddressUrl(pubkey: string) {
+  return `https://explorer.solana.com/address/${pubkey}?cluster=devnet`;
+}
+
+export default function Dashboard(
+  { listingProgramId = DEFAULT_LISTING_PROGRAM_ID }: Props,
+) {
   const [tab, setTab] = useState<Tab>("listed");
   const [listed, setListed] = useState<PublicListing[]>([]);
   const [renting, setRenting] = useState<BookingRecord[]>([]);
@@ -68,25 +79,6 @@ export default function Dashboard() {
       </header>
 
       <main class="dashboard__main">
-        <section class="dashboard__account" aria-labelledby="dash-account">
-          <p class="dashboard__eyebrow">Account</p>
-          <h1 id="dash-account" class="dashboard__title">Your wallet</h1>
-          <p class="dashboard__meta">Connected on Solana Devnet</p>
-
-          {address
-            ? (
-              <div class="account-box">
-                <span class="account-box__label">Address</span>
-                <code class="account-box__value">{address}</code>
-              </div>
-            )
-            : (
-              <p class="dashboard__hint">
-                Connect a wallet from the header to see your account.
-              </p>
-            )}
-        </section>
-
         <section class="dashboard__activity" aria-label="Activity">
           <div class="dashboard__tabs" role="tablist">
             <button
@@ -101,6 +93,9 @@ export default function Dashboard() {
               onClick={() => setTab("listed")}
             >
               Properties Listed
+              {!loading && address
+                ? <span class="dashboard__tab-count">{listed.length}</span>
+                : null}
             </button>
             <button
               type="button"
@@ -114,6 +109,9 @@ export default function Dashboard() {
               onClick={() => setTab("renting")}
             >
               Properties Renting
+              {!loading && address
+                ? <span class="dashboard__tab-count">{renting.length}</span>
+                : null}
             </button>
           </div>
 
@@ -151,9 +149,19 @@ export default function Dashboard() {
                           {item.beds === 1 ? "bed" : "beds"}
                         </p>
                       </div>
-                      <span class="dashboard__badge dashboard__badge--active">
-                        active
-                      </span>
+                      <div class="dashboard__row-actions">
+                        <a
+                          class="dashboard__chain-link"
+                          href={explorerAddressUrl(item.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Listing
+                        </a>
+                        <span class="dashboard__badge dashboard__badge--active">
+                          active
+                        </span>
+                      </div>
                     </li>
                   ))}
               </ul>
@@ -183,12 +191,65 @@ export default function Dashboard() {
                           {item.beds === 1 ? "bed" : "beds"}
                         </p>
                       </div>
-                      <p class="dashboard__dates">
-                        {item.checkIn} → {item.checkOut}
-                      </p>
+                      <div class="dashboard__row-actions">
+                        <a
+                          class="dashboard__chain-link"
+                          href={`https://explorer.solana.com/tx/${item.signature}?cluster=devnet`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Tx
+                        </a>
+                        <p class="dashboard__dates">
+                          {item.checkIn} → {item.checkOut}
+                        </p>
+                      </div>
                     </li>
                   ))}
               </ul>
+            )}
+        </section>
+
+        <section class="dashboard__account" aria-labelledby="dash-account">
+          <p class="dashboard__eyebrow">Account</p>
+          <h1 id="dash-account" class="dashboard__title">Your wallet</h1>
+          <p class="dashboard__meta">Connected on Solana Devnet</p>
+
+          {address
+            ? (
+              <>
+                <div class="account-box">
+                  <span class="account-box__label">Address</span>
+                  <code class="account-box__value">{address}</code>
+                </div>
+                <div class="dashboard__links">
+                  <a
+                    class="dashboard__chain-link"
+                    href={explorerAddressUrl(address)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View wallet on Explorer
+                  </a>
+                  {listingProgramId
+                    ? (
+                      <a
+                        class="dashboard__chain-link"
+                        href={explorerAddressUrl(listingProgramId)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        View SolBnB program on Explorer
+                      </a>
+                    )
+                    : null}
+                </div>
+              </>
+            )
+            : (
+              <p class="dashboard__hint">
+                Connect a wallet from the header to see your account.
+              </p>
             )}
         </section>
       </main>

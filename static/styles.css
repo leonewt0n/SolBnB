@@ -512,12 +512,17 @@ a {
   color: inherit;
 }
 
+.dashboard {
+  align-content: start;
+}
+
 .dashboard__main {
   width: min(920px, calc(100% - 2rem));
   margin: 0 auto;
-  padding: 1.5rem 0 3rem;
+  padding: 1rem 0 2.5rem;
   display: grid;
-  gap: 1.75rem;
+  gap: 1.1rem;
+  align-content: start;
 }
 
 .dashboard__eyebrow {
@@ -525,45 +530,76 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: rgba(18, 33, 43, 0.55);
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
 }
 
 .dashboard__title {
   font-family: var(--font-display);
-  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
   color: var(--sea-deep);
   line-height: 1.15;
 }
 
 .dashboard__meta,
 .dashboard__hint {
-  margin-top: 0.35rem;
+  margin-top: 0.25rem;
   color: rgba(18, 33, 43, 0.65);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
 }
 
 .dashboard__account .account-box {
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   margin-bottom: 0;
+}
+
+.dashboard__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.1rem;
+  margin-top: 0.75rem;
+}
+
+.dashboard__chain-link {
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 .dashboard__tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.35rem;
-  padding: 0.3rem;
-  border-radius: 14px;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border-radius: 999px;
   background: rgba(18, 33, 43, 0.06);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  align-self: start;
 }
 
 .dashboard__tab {
   border: 0;
-  border-radius: 11px;
-  padding: 0.7rem 0.85rem;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
   background: transparent;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  color: rgba(18, 33, 43, 0.7);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 0;
+}
+
+.dashboard__tab-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  min-width: 1.25rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(18, 33, 43, 0.08);
   color: rgba(18, 33, 43, 0.7);
 }
 
@@ -573,10 +609,15 @@ a {
   box-shadow: 0 1px 0 rgba(18, 33, 43, 0.06);
 }
 
+.dashboard__tab--active .dashboard__tab-count {
+  background: rgba(15, 106, 106, 0.14);
+  color: var(--sea-deep);
+}
+
 .dashboard__list {
   list-style: none;
   display: grid;
-  gap: 0.65rem;
+  gap: 0.5rem;
 }
 
 .dashboard__row {
@@ -584,9 +625,9 @@ a {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem 1rem;
-  padding: 0.95rem 1rem;
-  border-radius: 14px;
+  gap: 0.55rem 1rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 12px;
   background: rgba(247, 250, 251, 0.88);
   border: 1px solid rgba(18, 33, 43, 0.08);
 }
@@ -602,12 +643,19 @@ a {
   color: rgba(18, 33, 43, 0.62);
 }
 
+.dashboard__row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+}
+
 .dashboard__badge {
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding: 0.35rem 0.55rem;
+  padding: 0.3rem 0.5rem;
   border-radius: 999px;
 }
 
@@ -619,13 +667,6 @@ a {
 .dashboard__badge--paused {
   background: rgba(196, 92, 38, 0.14);
   color: var(--coral);
-}
-
-@media (min-width: 800px) {
-  .dashboard__activity {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
 }
 
 .modal__error {
