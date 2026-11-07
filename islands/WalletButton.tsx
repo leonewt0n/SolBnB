@@ -14,6 +14,9 @@ import {
   walletMenuOpen,
 } from "./store.ts";
 
+const PHANTOM_STORE_URL =
+  "https://chromewebstore.google.com/detail/phantom/bfnaelmomeimhlpmgjnjophhpkkoljpa";
+
 function shorten(addr: string) {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
@@ -114,17 +117,28 @@ export default function WalletButton() {
     );
   }
 
+  if (!hasWallet) {
+    return (
+      <a
+        class="wallet-btn"
+        href={PHANTOM_STORE_URL}
+        target="_blank"
+        rel="noreferrer"
+        title="Install Phantom from the Chrome Web Store"
+      >
+        Install Wallet
+      </a>
+    );
+  }
+
   return (
     <button
       class="wallet-btn"
       type="button"
       onClick={onConnect}
-      disabled={!hasWallet}
-      title={hasWallet
-        ? "Connect Phantom or Backpack"
-        : "Install Phantom or Backpack"}
+      title="Connect Phantom or Backpack"
     >
-      {hasWallet ? "Connect Wallet" : "Install Wallet"}
+      Connect Wallet
     </button>
   );
 }
