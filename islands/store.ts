@@ -1,6 +1,9 @@
 import { computed, signal } from "@preact/signals";
 import type { PublicListing } from "../data/listings.public.ts";
-import { filterListings } from "../data/listings.public.ts";
+import {
+  filterListings,
+  sanitizePublicListing,
+} from "../data/listings.public.ts";
 import { PRICE_LAMPORTS, SF_CENTER } from "../lib/constants.ts";
 
 export type TxStatus = "idle" | "signing" | "confirming" | "done" | "error";
@@ -31,7 +34,6 @@ export type BookingRecord = {
   id: string;
   listingId: string;
   name: string;
-  neighborhood: string;
   beds: number;
   checkIn: string;
   checkOut: string;
@@ -45,7 +47,10 @@ function readHostStorage(): PublicListing[] {
     const raw = localStorage.getItem(HOST_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed as PublicListing[] : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((row) => sanitizePublicListing(row))
+      .filter((l): l is PublicListing => !!l);
   } catch {
     return [];
   }
@@ -71,12 +76,6 @@ function mergeListing(
     hostPubkey: next.hostPubkey ?? prev.hostPubkey,
     // Chain stubs use thin defaults — keep richer host-store metadata.
     description: next.description ?? prev.description,
-    neighborhood: next.neighborhood === "On-chain" && prev.neighborhood
-      ? prev.neighborhood
-      : next.neighborhood,
-    areaCode: next.areaCode === "00000" && prev.areaCode
-      ? prev.areaCode
-      : next.areaCode,
     beds: next.beds === 1 && prev.beds > 1 ? prev.beds : next.beds,
     priceLamports: next.priceLamports || prev.priceLamports,
   };
@@ -251,8 +250,6 @@ export function logoutWallet() {
 
 export function addHostListing(input: {
   name: string;
-  neighborhood: string;
-  areaCode: string;
   description?: string;
   beds: number;
   lat: number;
@@ -275,8 +272,6 @@ export function addHostListing(input: {
   const listing: PublicListing = {
     id: input.id ?? `host-${slug}-${Date.now().toString(36)}`,
     name: input.name.trim(),
-    neighborhood: input.neighborhood.trim() || placeLabel.value,
-    areaCode: input.areaCode.trim() || "00000",
     ...(description ? { description } : {}),
     lat: input.lat,
     lng: input.lng,

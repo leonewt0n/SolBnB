@@ -45,12 +45,6 @@ export const handler = define.handlers({
             ...l,
             hostPubkey: l.hostPubkey ?? prev.hostPubkey,
             description: l.description ?? prev.description,
-            neighborhood: l.neighborhood === "On-chain" && prev.neighborhood
-              ? prev.neighborhood
-              : l.neighborhood,
-            areaCode: l.areaCode === "00000" && prev.areaCode
-              ? prev.areaCode
-              : l.areaCode,
             beds: l.beds === 1 && prev.beds > 1 ? prev.beds : l.beds,
             priceLamports: l.priceLamports || prev.priceLamports,
           }

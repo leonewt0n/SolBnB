@@ -21,7 +21,7 @@ export default function SearchBar() {
         <input
           class="search__input"
           type="search"
-          placeholder="City, neighborhood, or ZIP"
+          placeholder="City or place"
           value={query.value}
           disabled={busy}
           onInput={(e) => {

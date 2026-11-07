@@ -63,8 +63,6 @@ function decodeListingAccount(
     return {
       id: pubkey,
       name: name || "On-chain stay",
-      neighborhood: "On-chain",
-      areaCode: "00000",
       lat,
       lng,
       priceLamports,

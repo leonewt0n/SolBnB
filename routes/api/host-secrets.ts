@@ -15,8 +15,6 @@ type Body = {
   signature?: string | null;
   commitmentHex?: string;
   name?: string;
-  neighborhood?: string;
-  areaCode?: string;
   description?: string;
   beds?: number;
   lat?: number;
@@ -119,8 +117,6 @@ export const handler = define.handlers({
     const listing: PublicListing = {
       id: listingId,
       name,
-      neighborhood: body.neighborhood?.trim() || "Host stay",
-      areaCode: body.areaCode?.trim() || "00000",
       ...(description ? { description } : {}),
       lat,
       lng,
@@ -218,10 +214,6 @@ export const handler = define.handlers({
     const listing: PublicListing = {
       ...rest,
       name,
-      neighborhood: body.neighborhood?.trim() ||
-        existing.listing.neighborhood ||
-        "Host stay",
-      areaCode: body.areaCode?.trim() || existing.listing.areaCode || "00000",
       ...(description ? { description } : {}),
       lat,
       lng,

@@ -86,7 +86,6 @@ export default function BookingModal({ merchantPubkey }: Props) {
         addBooking({
           listingId: listing!.id,
           name: listing!.name,
-          neighborhood: listing!.neighborhood,
           beds: listing!.beds,
           checkIn: checkIn.value,
           checkOut: checkOut.value,
@@ -122,9 +121,7 @@ export default function BookingModal({ merchantPubkey }: Props) {
           ×
         </button>
 
-        <p class="modal__eyebrow">
-          {listing.neighborhood} · {listing.areaCode}
-        </p>
+        <p class="modal__eyebrow">Stay</p>
         <h2 id="booking-title" class="modal__title">{listing.name}</h2>
         <p class="modal__meta">
           {listing.beds} bed{listing.beds > 1 ? "s" : ""} · {priceLabel} flat

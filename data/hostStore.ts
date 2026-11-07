@@ -2,7 +2,10 @@
  * Durable host listings + secrets (SERVER ONLY).
  * Survives refresh / wallet disconnect / Deno reload.
  */
-import type { PublicListing } from "./listings.public.ts";
+import {
+  type PublicListing,
+  sanitizePublicListing,
+} from "./listings.public.ts";
 import type { ListingSecrets } from "./listings.secrets.ts";
 
 export type HostRecord = {
@@ -24,8 +27,22 @@ const STORE_PATH = new URL("./.host-store.json", import.meta.url);
 let cache: StoreFile | null = null;
 
 function normalizeStore(parsed: Partial<StoreFile> | null): StoreFile {
+  const records: HostRecord[] = [];
+  if (Array.isArray(parsed?.records)) {
+    for (const row of parsed.records) {
+      const listing = sanitizePublicListing(row?.listing);
+      if (!listing || !row?.secrets) continue;
+      records.push({
+        listing,
+        secrets: row.secrets,
+        salt: row.salt,
+        commitmentHex: row.commitmentHex,
+        signature: row.signature,
+      });
+    }
+  }
   return {
-    records: Array.isArray(parsed?.records) ? parsed!.records : [],
+    records,
     deletedIds: Array.isArray(parsed?.deletedIds) ? parsed!.deletedIds : [],
   };
 }

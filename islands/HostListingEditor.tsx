@@ -35,8 +35,6 @@ export default function HostListingEditor({
 }: Props) {
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description ?? "");
-  const [neighborhood, setNeighborhood] = useState(item.neighborhood);
-  const [areaCode, setAreaCode] = useState(item.areaCode);
   const [beds, setBeds] = useState(item.beds);
   const [priceSol, setPriceSol] = useState(
     String((item.priceLamports || PRICE_LAMPORTS) / 1_000_000_000),
@@ -72,8 +70,6 @@ export default function HostListingEditor({
         if (body.listing) {
           setName(body.listing.name ?? item.name);
           setDescription(body.listing.description ?? "");
-          setNeighborhood(body.listing.neighborhood ?? item.neighborhood);
-          setAreaCode(body.listing.areaCode ?? item.areaCode);
           setBeds(body.listing.beds ?? item.beds);
           setPriceSol(
             String(
@@ -157,8 +153,6 @@ export default function HostListingEditor({
         hostPubkey: wallet,
         name: trimmedName,
         description: trimmedDescription,
-        neighborhood: neighborhood.trim() || "Host stay",
-        areaCode: areaCode.trim() || "00000",
         beds,
         priceLamports,
         lat: nextLat,
@@ -222,27 +216,6 @@ export default function HostListingEditor({
             {description.length}/{DESCRIPTION_MAX}
           </span>
         </label>
-
-        <div class="dates">
-          <label class="dates__field">
-            <span>Neighborhood</span>
-            <input
-              type="text"
-              value={neighborhood}
-              onInput={(e) =>
-                setNeighborhood((e.target as HTMLInputElement).value)}
-            />
-          </label>
-          <label class="dates__field">
-            <span>ZIP / area code</span>
-            <input
-              type="text"
-              value={areaCode}
-              onInput={(e) =>
-                setAreaCode((e.target as HTMLInputElement).value)}
-            />
-          </label>
-        </div>
 
         <div class="dates">
           <label class="dates__field">
@@ -322,8 +295,7 @@ export default function HostListingEditor({
 
         <p class="dashboard__row-meta">
           On-chain: title, pin, price, secrets hash · Off-chain: description,
-          beds, neighborhood, credentials · Min{" "}
-          {lamportsToSolLabel(MIN_PRICE_LAMPORTS)}
+          beds, credentials · Min {lamportsToSolLabel(MIN_PRICE_LAMPORTS)}
         </p>
 
         <div class="dashboard__row-actions">

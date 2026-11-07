@@ -10,7 +10,6 @@ import {
   cancelCreateListing,
   listingOpen,
   pendingPin,
-  placeLabel,
   selectListing,
   walletAddress,
 } from "./store.ts";
@@ -104,8 +103,6 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
       const listingPayload = {
         listingId,
         name: name.trim(),
-        neighborhood: placeLabel.value || "Host stay",
-        areaCode: "00000",
         description: trimmedDescription,
         beds,
         priceLamports,
@@ -134,8 +131,6 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
       const listing = addHostListing({
         id: listingId,
         name: listingPayload.name,
-        neighborhood: listingPayload.neighborhood,
-        areaCode: listingPayload.areaCode,
         description: listingPayload.description,
         beds,
         priceLamports,
