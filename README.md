@@ -21,6 +21,7 @@ Built with **Fresh (Deno + Preact)**, **Leaflet / OSM**, and
 ```bash
 cp .env.example .env
 # Set MERCHANT_WALLET to YOUR Devnet pubkey so you receive the demo payments
+deno install
 deno task dev
 ```
 
