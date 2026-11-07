@@ -27,7 +27,7 @@ export default function AppShell(
         <div class="topbar__brand">
           <span class="topbar__mark">SolBnB</span>
           <span class="topbar__tag">
-            Devnet stays · {placeLabel.value}
+            Your Home On Solana.
           </span>
         </div>
         <div class="topbar__tools">
