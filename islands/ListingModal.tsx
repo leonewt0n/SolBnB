@@ -1,5 +1,10 @@
 import { useState } from "preact/hooks";
-import { PRICE_SOL_LABEL } from "../lib/constants.ts";
+import {
+  lamportsToSolLabel,
+  MIN_PRICE_LAMPORTS,
+  PRICE_LAMPORTS,
+  solToLamports,
+} from "../lib/constants.ts";
 import {
   addHostListing,
   cancelCreateListing,
@@ -12,6 +17,7 @@ import {
 import { commitSecrets, createListingOnChain } from "./createListing.ts";
 
 const DESCRIPTION_MAX = 500;
+const DEFAULT_PRICE_SOL = PRICE_LAMPORTS / 1_000_000_000;
 
 type Props = {
   listingProgramId?: string;
@@ -25,6 +31,7 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [priceSol, setPriceSol] = useState(String(DEFAULT_PRICE_SOL));
   const [beds, setBeds] = useState(1);
   const [doorCode, setDoorCode] = useState("");
   const [wifiPassword, setWifiPassword] = useState("");
@@ -49,6 +56,14 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
     }
     if (description.trim().length > DESCRIPTION_MAX) {
       setError(`Description must be ${DESCRIPTION_MAX} characters or fewer.`);
+      return;
+    }
+    const priceLamports = solToLamports(Number(priceSol));
+    if (
+      !Number.isFinite(priceLamports) ||
+      priceLamports < MIN_PRICE_LAMPORTS
+    ) {
+      setError("Price must be at least 0.001 SOL.");
       return;
     }
     if (!doorCode.trim() || !wifiPassword.trim()) {
@@ -79,6 +94,7 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
         lng: pin.lng,
         nonce,
         secretsCommitment: commitment,
+        priceLamports,
       });
       const listingId = result.listingPda;
       const signature = result.signature;
@@ -92,6 +108,7 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
         areaCode: "00000",
         description: trimmedDescription,
         beds,
+        priceLamports,
         lat: pin.lat,
         lng: pin.lng,
         doorCode: doorCode.trim(),
@@ -121,6 +138,7 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
         areaCode: listingPayload.areaCode,
         description: listingPayload.description,
         beds,
+        priceLamports,
         lat: pin.lat,
         lng: pin.lng,
         hostPubkey,
@@ -163,13 +181,9 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
         <h2 id="listing-title" class="modal__title">List a stay</h2>
         <p class="modal__meta">
           {pin
-            ? (
-              <>
-                Pin {pin.lat.toFixed(5)}, {pin.lng.toFixed(5)} ·{" "}
-                {PRICE_SOL_LABEL} per booking
-              </>
-            )
-            : <>Click the map to drop a pin · {PRICE_SOL_LABEL} per booking</>}
+            ? <>Pin {pin.lat.toFixed(5)}, {pin.lng.toFixed(5)}</>
+            : <>Click the map to drop a pin</>}
+          {" "}· renters pay you on-chain
         </p>
 
         <form class="listing-form" onSubmit={onSubmit}>
@@ -199,19 +213,37 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
             </span>
           </label>
 
-          <label class="listing-form__field">
-            <span>Beds</span>
-            <input
-              type="number"
-              min={1}
-              max={8}
-              value={beds}
-              onInput={(e) =>
-                setBeds(
-                  Number((e.target as HTMLInputElement).value) || 1,
-                )}
-            />
-          </label>
+          <div class="dates">
+            <label class="dates__field">
+              <span>Price (SOL)</span>
+              <input
+                type="number"
+                min={DEFAULT_PRICE_SOL}
+                step="0.001"
+                value={priceSol}
+                onInput={(e) =>
+                  setPriceSol((e.target as HTMLInputElement).value)}
+                required
+              />
+            </label>
+            <label class="dates__field">
+              <span>Beds</span>
+              <input
+                type="number"
+                min={1}
+                max={8}
+                value={beds}
+                onInput={(e) =>
+                  setBeds(
+                    Number((e.target as HTMLInputElement).value) || 1,
+                  )}
+              />
+            </label>
+          </div>
+          <p class="modal__hint">
+            Minimum {lamportsToSolLabel(MIN_PRICE_LAMPORTS)}. Paid to your
+            wallet on each booking.
+          </p>
 
           <label class="listing-form__field">
             <span>Door passkey</span>

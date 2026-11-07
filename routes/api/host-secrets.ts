@@ -4,7 +4,7 @@ import {
   getHostRecord,
   upsertHostRecord,
 } from "../../data/hostStore.ts";
-import { PRICE_LAMPORTS } from "../../lib/constants.ts";
+import { MIN_PRICE_LAMPORTS, PRICE_LAMPORTS } from "../../lib/constants.ts";
 import type { PublicListing } from "../../data/listings.public.ts";
 
 type Body = {
@@ -22,6 +22,7 @@ type Body = {
   lat?: number;
   lng?: number;
   hostPubkey?: string;
+  priceLamports?: number;
 };
 
 /**
@@ -71,6 +72,11 @@ export const handler = define.handlers({
     }
 
     const hostPubkey = body.hostPubkey?.trim();
+    const rawPrice = Number(body.priceLamports);
+    const priceLamports =
+      Number.isFinite(rawPrice) && rawPrice >= MIN_PRICE_LAMPORTS
+        ? Math.floor(rawPrice)
+        : PRICE_LAMPORTS;
     const listing: PublicListing = {
       id: listingId,
       name,
@@ -79,7 +85,7 @@ export const handler = define.handlers({
       ...(description ? { description } : {}),
       lat,
       lng,
-      priceLamports: PRICE_LAMPORTS,
+      priceLamports,
       beds: Math.max(1, Math.min(8, Number(body.beds) || 1)),
       ...(hostPubkey ? { hostPubkey } : {}),
     };
@@ -98,6 +104,60 @@ export const handler = define.handlers({
       commitmentHex: body.commitmentHex ?? null,
       signature: body.signature ?? null,
     });
+  },
+
+  /** Host mirrors an on-chain price change into the off-chain store. */
+  async PATCH(ctx) {
+    let body: {
+      listingId?: string;
+      hostPubkey?: string;
+      priceLamports?: number;
+    };
+    try {
+      body = await ctx.req.json();
+    } catch {
+      return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const listingId = body.listingId?.trim();
+    const hostPubkey = body.hostPubkey?.trim();
+    const priceLamports = Number(body.priceLamports);
+    if (!listingId || !hostPubkey) {
+      return Response.json(
+        { error: "listingId and hostPubkey are required" },
+        { status: 400 },
+      );
+    }
+    if (
+      !Number.isFinite(priceLamports) ||
+      priceLamports < MIN_PRICE_LAMPORTS
+    ) {
+      return Response.json(
+        { error: "priceLamports must be at least 0.001 SOL" },
+        { status: 400 },
+      );
+    }
+
+    const existing = await getHostRecord(listingId);
+    if (!existing) {
+      return Response.json({ error: "Unknown listing" }, { status: 404 });
+    }
+    if (
+      existing.listing.hostPubkey &&
+      existing.listing.hostPubkey !== hostPubkey
+    ) {
+      return Response.json(
+        { error: "Only the listing host can update this record" },
+        { status: 403 },
+      );
+    }
+
+    existing.listing = {
+      ...existing.listing,
+      priceLamports: Math.floor(priceLamports),
+    };
+    await upsertHostRecord(existing);
+    return Response.json({ ok: true, listing: existing.listing });
   },
 
   /** Host removes off-chain secrets after closing the Listing PDA. */

@@ -1,4 +1,4 @@
-import { DEVNET_RPC_DEFAULT, PRICE_LAMPORTS } from "../lib/constants.ts";
+import { DEVNET_RPC_DEFAULT, MIN_PRICE_LAMPORTS } from "../lib/constants.ts";
 
 /** Subset of @solana/web3.js used by the booking flow (from CDN IIFE). */
 type SolanaWeb3 = {
@@ -181,10 +181,23 @@ export async function disconnectWallet(): Promise<void> {
   }
 }
 
-export async function bookStay(merchantPubkey: string): Promise<string> {
+/** Pay the listing host the listing's on-chain price. */
+export async function bookStay(
+  hostPubkey: string,
+  priceLamports: number,
+): Promise<string> {
   const provider = getWalletProvider();
   if (!provider?.publicKey) {
     throw new Error("Connect your wallet first.");
+  }
+  if (!hostPubkey) {
+    throw new Error("Listing host is unknown — cannot route payment.");
+  }
+  if (
+    !Number.isFinite(priceLamports) ||
+    priceLamports < MIN_PRICE_LAMPORTS
+  ) {
+    throw new Error("Listing price is invalid.");
   }
 
   const {
@@ -196,7 +209,7 @@ export async function bookStay(merchantPubkey: string): Promise<string> {
 
   const connection = new Connection(DEVNET_RPC_DEFAULT, "confirmed");
   const from = new PublicKey(provider.publicKey.toString());
-  const to = new PublicKey(merchantPubkey);
+  const to = new PublicKey(hostPubkey);
 
   const { blockhash, lastValidBlockHeight } = await connection
     .getLatestBlockhash("confirmed");
@@ -209,7 +222,7 @@ export async function bookStay(merchantPubkey: string): Promise<string> {
     SystemProgram.transfer({
       fromPubkey: from,
       toPubkey: to,
-      lamports: PRICE_LAMPORTS,
+      lamports: Math.floor(priceLamports),
     }),
   );
 

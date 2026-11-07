@@ -247,6 +247,7 @@ export function addHostListing(input: {
   beds: number;
   lat: number;
   lng: number;
+  priceLamports?: number;
   id?: string;
   hostPubkey?: string;
 }): PublicListing {
@@ -256,6 +257,11 @@ export function addHostListing(input: {
     .replace(/^-|-$/g, "")
     .slice(0, 20) || "stay";
   const description = input.description?.trim().slice(0, 500);
+  const priceLamports =
+    Number.isFinite(input.priceLamports) &&
+      (input.priceLamports as number) >= PRICE_LAMPORTS
+      ? Math.floor(input.priceLamports as number)
+      : PRICE_LAMPORTS;
   const listing: PublicListing = {
     id: input.id ?? `host-${slug}-${Date.now().toString(36)}`,
     name: input.name.trim(),
@@ -264,7 +270,7 @@ export function addHostListing(input: {
     ...(description ? { description } : {}),
     lat: input.lat,
     lng: input.lng,
-    priceLamports: PRICE_LAMPORTS,
+    priceLamports,
     beds: Math.max(1, Math.min(8, input.beds || 1)),
     hostPubkey: input.hostPubkey,
   };
@@ -275,6 +281,21 @@ export function addHostListing(input: {
   hostListings.value = next;
   writeHostStorage(next);
   return listing;
+}
+
+/** Mirror an on-chain price change into the local host list. */
+export function updateHostListingPrice(
+  listingId: string,
+  priceLamports: number,
+): void {
+  const next = hostListings.value.map((l) =>
+    l.id === listingId ? { ...l, priceLamports } : l
+  );
+  hostListings.value = next;
+  writeHostStorage(next);
+  if (selected.value?.id === listingId) {
+    selected.value = { ...selected.value, priceLamports };
+  }
 }
 
 /** Drop a host listing from local mirror (after on-chain close). */

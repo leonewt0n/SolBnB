@@ -2,6 +2,9 @@ use anchor_lang::prelude::*;
 
 declare_id!("FkYg3CaWUoN3Af6BU486X2rLpg4b3ra8gKBPiztd2WJd");
 
+/// Minimum booking price (0.001 SOL) — keeps demos above dust.
+pub const MIN_PRICE_LAMPORTS: u64 = 1_000_000;
+
 /// Public listing pin. Door / Wi-Fi plaintext never stored here —
 /// only a 32-byte commitment (sha256) so buyers can verify unlock
 /// material later without exposing it on-chain.
@@ -19,6 +22,8 @@ pub struct Listing {
     pub secrets_commitment: [u8; 32],
     pub nonce: u64,
     pub bump: u8,
+    /// Flat booking price in lamports; paid to `host`.
+    pub price_lamports: u64,
 }
 
 #[program]
@@ -32,10 +37,15 @@ pub mod solbnb {
         lng: f64,
         secrets_commitment: [u8; 32],
         nonce: u64,
+        price_lamports: u64,
     ) -> Result<()> {
         require!(!name.is_empty() && name.len() <= 64, SolbnbError::BadName);
         require!((-90.0..=90.0).contains(&lat), SolbnbError::BadCoords);
         require!((-180.0..=180.0).contains(&lng), SolbnbError::BadCoords);
+        require!(
+            price_lamports >= MIN_PRICE_LAMPORTS,
+            SolbnbError::BadPrice
+        );
 
         let listing = &mut ctx.accounts.listing;
         listing.host = ctx.accounts.host.key();
@@ -45,6 +55,17 @@ pub mod solbnb {
         listing.secrets_commitment = secrets_commitment;
         listing.nonce = nonce;
         listing.bump = ctx.bumps.listing;
+        listing.price_lamports = price_lamports;
+        Ok(())
+    }
+
+    /// Host updates the flat booking price (paid to host on book).
+    pub fn update_price(ctx: Context<UpdatePrice>, price_lamports: u64) -> Result<()> {
+        require!(
+            price_lamports >= MIN_PRICE_LAMPORTS,
+            SolbnbError::BadPrice
+        );
+        ctx.accounts.listing.price_lamports = price_lamports;
         Ok(())
     }
 
@@ -60,7 +81,8 @@ pub mod solbnb {
     lat: f64,
     lng: f64,
     secrets_commitment: [u8; 32],
-    nonce: u64
+    nonce: u64,
+    price_lamports: u64
 )]
 pub struct InitializeListing<'info> {
     #[account(
@@ -76,6 +98,19 @@ pub struct InitializeListing<'info> {
     pub host: Signer<'info>,
 
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdatePrice<'info> {
+    #[account(
+        mut,
+        seeds = [b"listing", host.key().as_ref(), &listing.nonce.to_le_bytes()],
+        bump = listing.bump,
+        has_one = host @ SolbnbError::Unauthorized
+    )]
+    pub listing: Account<'info, Listing>,
+
+    pub host: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -99,6 +134,8 @@ pub enum SolbnbError {
     BadName,
     #[msg("lat/lng out of range")]
     BadCoords,
-    #[msg("Only the listing host can close this account")]
+    #[msg("Only the listing host can close or update this account")]
     Unauthorized,
+    #[msg("Price must be at least 0.001 SOL (1_000_000 lamports)")]
+    BadPrice,
 }

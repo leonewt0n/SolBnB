@@ -15,6 +15,8 @@ export type CreateListingInput = {
   nonce: bigint;
   /** 32-byte sha256(door + wifi + salt). */
   secretsCommitment: Uint8Array;
+  /** Flat booking price in lamports (paid to host). */
+  priceLamports: number;
 };
 
 export type CreateListingResult = {
@@ -109,7 +111,7 @@ export async function createListingOnChain(
     programId,
   );
 
-  // Args order must match Anchor: name, lat, lng, secrets_commitment, nonce
+  // Args: name, lat, lng, secrets_commitment, nonce, price_lamports
   const data = concatBytes(
     await initializeListingDiscriminator(),
     encodeString(input.name.slice(0, 64)),
@@ -117,6 +119,7 @@ export async function createListingOnChain(
     encodeF64(input.lng),
     input.secretsCommitment,
     nonceBytes,
+    encodeU64(BigInt(Math.floor(input.priceLamports))),
   );
 
   const ix = new TransactionInstruction({

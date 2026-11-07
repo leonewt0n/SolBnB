@@ -1,13 +1,14 @@
 import type { Connection } from "@solana/web3.js";
-import { getMerchantWallet, PRICE_LAMPORTS } from "./solana.ts";
 
 /**
- * Confirm a Devnet transfer credited the merchant at least PRICE_LAMPORTS.
+ * Confirm a Devnet transfer credited `payee` at least `minLamports`.
  * Uses maxSupportedTransactionVersion: 1 so versioned txs are readable.
  */
 export async function verifyBookingPayment(
   connection: Connection,
   signature: string,
+  payee: string,
+  minLamports: number,
 ): Promise<boolean> {
   const tx = await connection.getTransaction(signature, {
     commitment: "confirmed",
@@ -15,18 +16,20 @@ export async function verifyBookingPayment(
   });
 
   if (!tx || tx.meta?.err) return false;
+  if (!payee || !Number.isFinite(minLamports) || minLamports <= 0) {
+    return false;
+  }
 
-  const merchant = getMerchantWallet();
   const accountKeys = tx.transaction.message.getAccountKeys()
     .staticAccountKeys
     .map((k) => k.toBase58());
 
-  const merchantIdx = accountKeys.indexOf(merchant);
-  if (merchantIdx < 0 || !tx.meta) return false;
+  const payeeIdx = accountKeys.indexOf(payee);
+  if (payeeIdx < 0 || !tx.meta) return false;
 
   const delta =
-    (tx.meta.postBalances[merchantIdx] ?? 0) -
-    (tx.meta.preBalances[merchantIdx] ?? 0);
+    (tx.meta.postBalances[payeeIdx] ?? 0) -
+    (tx.meta.preBalances[payeeIdx] ?? 0);
 
-  return delta >= PRICE_LAMPORTS;
+  return delta >= minLamports;
 }

@@ -677,10 +677,8 @@ a {
   color: var(--coral);
 }
 
-.dashboard__delete {
-  border: 1px solid rgba(155, 28, 28, 0.28);
-  background: rgba(155, 28, 28, 0.06);
-  color: #9b1c1c;
+.dashboard__delete,
+.dashboard__price {
   font: inherit;
   font-size: 0.78rem;
   font-weight: 600;
@@ -689,7 +687,20 @@ a {
   cursor: pointer;
 }
 
-.dashboard__delete:disabled {
+.dashboard__delete {
+  border: 1px solid rgba(155, 28, 28, 0.28);
+  background: rgba(155, 28, 28, 0.06);
+  color: #9b1c1c;
+}
+
+.dashboard__price {
+  border: 1px solid rgba(15, 106, 106, 0.28);
+  background: rgba(15, 106, 106, 0.06);
+  color: var(--sea-deep);
+}
+
+.dashboard__delete:disabled,
+.dashboard__price:disabled {
   opacity: 0.55;
   cursor: wait;
 }

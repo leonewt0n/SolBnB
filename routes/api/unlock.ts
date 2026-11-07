@@ -1,5 +1,8 @@
 import { define } from "../../utils.ts";
+import { getHostRecord } from "../../data/hostStore.ts";
 import { getSecrets } from "../../data/listings.secrets.ts";
+import { MIN_PRICE_LAMPORTS } from "../../lib/constants.ts";
+import { fetchOnChainListing } from "../../lib/onchainListings.ts";
 import { getConnection } from "../../lib/solana.ts";
 import { verifyBookingPayment } from "../../lib/verifyPayment.ts";
 
@@ -32,8 +35,29 @@ export const handler = define.handlers({
       return Response.json({ error: "Unknown listing" }, { status: 404 });
     }
 
+    const connection = getConnection();
+    const onChain = await fetchOnChainListing(listingId, connection);
+    const hosted = await getHostRecord(listingId);
+
+    const hostPubkey = onChain?.hostPubkey ?? hosted?.listing.hostPubkey;
+    const priceLamports = onChain?.priceLamports ??
+      hosted?.listing.priceLamports ??
+      MIN_PRICE_LAMPORTS;
+
+    if (!hostPubkey) {
+      return Response.json(
+        { error: "Listing host unknown — cannot verify payment" },
+        { status: 400 },
+      );
+    }
+
     try {
-      const ok = await verifyBookingPayment(getConnection(), signature);
+      const ok = await verifyBookingPayment(
+        connection,
+        signature,
+        hostPubkey,
+        priceLamports,
+      );
       if (!ok) {
         return Response.json(
           { error: "Payment not confirmed on Devnet" },

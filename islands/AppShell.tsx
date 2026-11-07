@@ -29,7 +29,7 @@ type Props = {
 export default function AppShell(
   {
     initialHostListings = [],
-    merchantPubkey,
+    merchantPubkey: _merchantPubkey,
     listingProgramId = "",
   }: Props,
 ) {
@@ -108,7 +108,7 @@ export default function AppShell(
         <MapView />
       </main>
 
-      <BookingModal merchantPubkey={merchantPubkey} />
+      <BookingModal />
       <ListingModal listingProgramId={listingProgramId} />
       <AccountModal />
     </div>

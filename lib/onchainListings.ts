@@ -52,6 +52,14 @@ function decodeListingAccount(
 
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
+    // secrets_commitment (32) + nonce (8) + bump (1) [+ price_lamports (8)]
+    o += 32 + 8 + 1;
+    let priceLamports = PRICE_LAMPORTS;
+    if (o + 8 <= raw.length) {
+      const price = Number(view.getBigUint64(o, true));
+      if (Number.isFinite(price) && price > 0) priceLamports = price;
+    }
+
     return {
       id: pubkey,
       name: name || "On-chain stay",
@@ -59,10 +67,32 @@ function decodeListingAccount(
       areaCode: "00000",
       lat,
       lng,
-      priceLamports: PRICE_LAMPORTS,
+      priceLamports,
       beds: 1,
       hostPubkey,
     };
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch a single Listing account by PDA. */
+export async function fetchOnChainListing(
+  listingId: string,
+  connection: Connection = getConnection(),
+): Promise<PublicListing | null> {
+  if (!listingId) return null;
+  try {
+    const disc = await listingAccountDiscriminator();
+    const info = await connection.getAccountInfo(new PublicKey(listingId), {
+      commitment: "confirmed",
+    });
+    if (!info?.data) return null;
+    const data = info.data instanceof Uint8Array
+      ? info.data
+      : new Uint8Array(info.data);
+    if (!discMatches(data, disc)) return null;
+    return decodeListingAccount(listingId, data);
   } catch {
     return null;
   }

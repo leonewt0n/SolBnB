@@ -1,8 +1,15 @@
 import { useEffect, useState } from "preact/hooks";
 import { IS_BROWSER } from "fresh/runtime";
 import type { PublicListing } from "../data/listings.public.ts";
-import { DEFAULT_LISTING_PROGRAM_ID } from "../lib/constants.ts";
+import {
+  DEFAULT_LISTING_PROGRAM_ID,
+  lamportsToSolLabel,
+  MIN_PRICE_LAMPORTS,
+  PRICE_LAMPORTS,
+  solToLamports,
+} from "../lib/constants.ts";
 import { closeListingOnChain } from "./deleteListing.ts";
+import { updateListingPriceOnChain } from "./updateListingPrice.ts";
 import {
   type BookingRecord,
   bookingsForWallet,
@@ -11,6 +18,7 @@ import {
   listingsForHost,
   mergeHostListings,
   removeHostListing,
+  updateHostListingPrice,
   walletAddress,
 } from "./store.ts";
 import WalletButton from "./WalletButton.tsx";
@@ -33,7 +41,8 @@ export default function Dashboard(
   const [renting, setRenting] = useState<BookingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [pricingId, setPricingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   function refreshOwned() {
     const wallet = walletAddress.value;
@@ -41,18 +50,82 @@ export default function Dashboard(
     setRenting(wallet ? bookingsForWallet(wallet) : []);
   }
 
-  async function onDeleteListing(item: PublicListing) {
+  async function onUpdatePrice(item: PublicListing) {
     const wallet = walletAddress.value;
     if (!wallet) {
-      setDeleteError("Connect your wallet first.");
+      setActionError("Connect your wallet first.");
       return;
     }
     if (item.hostPubkey && item.hostPubkey !== wallet) {
-      setDeleteError("Only the listing host can delete this stay.");
+      setActionError("Only the listing host can change the price.");
       return;
     }
     if (!listingProgramId) {
-      setDeleteError("Listing program is not configured.");
+      setActionError("Listing program is not configured.");
+      return;
+    }
+
+    const currentSol = (item.priceLamports || PRICE_LAMPORTS) / 1_000_000_000;
+    const raw = globalThis.prompt(
+      `New price in SOL (min 0.001) for "${item.name}"`,
+      String(currentSol),
+    );
+    if (raw == null) return;
+    const priceLamports = solToLamports(Number(raw));
+    if (
+      !Number.isFinite(priceLamports) ||
+      priceLamports < MIN_PRICE_LAMPORTS
+    ) {
+      setActionError("Price must be at least 0.001 SOL.");
+      return;
+    }
+
+    setActionError(null);
+    setPricingId(item.id);
+    try {
+      await updateListingPriceOnChain({
+        programId: listingProgramId,
+        listingPda: item.id,
+        priceLamports,
+      });
+
+      const res = await fetch("/api/host-secrets", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          listingId: item.id,
+          hostPubkey: wallet,
+          priceLamports,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to mirror price off-chain");
+      }
+
+      updateHostListingPrice(item.id, priceLamports);
+      refreshOwned();
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Could not update price",
+      );
+    } finally {
+      setPricingId(null);
+    }
+  }
+
+  async function onDeleteListing(item: PublicListing) {
+    const wallet = walletAddress.value;
+    if (!wallet) {
+      setActionError("Connect your wallet first.");
+      return;
+    }
+    if (item.hostPubkey && item.hostPubkey !== wallet) {
+      setActionError("Only the listing host can delete this stay.");
+      return;
+    }
+    if (!listingProgramId) {
+      setActionError("Listing program is not configured.");
       return;
     }
     if (
@@ -63,7 +136,7 @@ export default function Dashboard(
       return;
     }
 
-    setDeleteError(null);
+    setActionError(null);
     setDeletingId(item.id);
     try {
       let chainNote: string | null = null;
@@ -73,7 +146,7 @@ export default function Dashboard(
           listingPda: item.id,
         });
       } catch (err) {
-        // Tombstone still hides the pin if Devnet program lacks close_listing yet.
+        // Tombstone still hides the pin if close fails (e.g. pre-price accounts).
         chainNote = err instanceof Error
           ? err.message
           : "On-chain close failed";
@@ -95,12 +168,12 @@ export default function Dashboard(
       removeHostListing(item.id);
       refreshOwned();
       if (chainNote) {
-        setDeleteError(
+        setActionError(
           `Removed from SolBnB. On-chain close skipped: ${chainNote}`,
         );
       }
     } catch (err) {
-      setDeleteError(
+      setActionError(
         err instanceof Error ? err.message : "Could not delete listing",
       );
     } finally {
@@ -201,8 +274,8 @@ export default function Dashboard(
             : tab === "listed"
             ? (
               <>
-                {deleteError && (
-                  <p class="dashboard__error" role="alert">{deleteError}</p>
+                {actionError && (
+                  <p class="dashboard__error" role="alert">{actionError}</p>
                 )}
                 <ul
                   class="dashboard__list"
@@ -225,7 +298,10 @@ export default function Dashboard(
                           <p class="dashboard__row-name">{item.name}</p>
                           <p class="dashboard__row-meta">
                             {item.neighborhood} · {item.beds}{" "}
-                            {item.beds === 1 ? "bed" : "beds"}
+                            {item.beds === 1 ? "bed" : "beds"} ·{" "}
+                            {lamportsToSolLabel(
+                              item.priceLamports || PRICE_LAMPORTS,
+                            )}
                           </p>
                         </div>
                         <div class="dashboard__row-actions">
@@ -239,8 +315,20 @@ export default function Dashboard(
                           </a>
                           <button
                             type="button"
+                            class="dashboard__price"
+                            disabled={pricingId === item.id ||
+                              deletingId === item.id}
+                            onClick={() => onUpdatePrice(item)}
+                          >
+                            {pricingId === item.id
+                              ? "Updating…"
+                              : "Set price"}
+                          </button>
+                          <button
+                            type="button"
                             class="dashboard__delete"
-                            disabled={deletingId === item.id}
+                            disabled={deletingId === item.id ||
+                              pricingId === item.id}
                             onClick={() => onDeleteListing(item)}
                           >
                             {deletingId === item.id ? "Deleting…" : "Delete"}

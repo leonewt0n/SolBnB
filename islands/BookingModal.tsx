@@ -1,4 +1,4 @@
-import { PRICE_SOL_LABEL } from "../lib/constants.ts";
+import { lamportsToSolLabel, PRICE_LAMPORTS } from "../lib/constants.ts";
 import { bookStay } from "./pay.ts";
 import {
   addBooking,
@@ -14,17 +14,18 @@ import {
   walletAddress,
 } from "./store.ts";
 
-type Props = {
-  merchantPubkey: string;
-};
-
-export default function BookingModal({ merchantPubkey }: Props) {
+export default function BookingModal() {
   const listing = selected.value;
   if (!listing) return null;
+
+  const priceLamports = listing.priceLamports || PRICE_LAMPORTS;
+  const priceLabel = lamportsToSolLabel(priceLamports);
+  const hostPubkey = listing.hostPubkey;
 
   const canBook = !!checkIn.value && !!checkOut.value &&
     checkOut.value > checkIn.value &&
     !!walletAddress.value &&
+    !!hostPubkey &&
     txStatus.value !== "signing" &&
     txStatus.value !== "confirming" &&
     txStatus.value !== "done";
@@ -35,7 +36,10 @@ export default function BookingModal({ merchantPubkey }: Props) {
     txStatus.value = "signing";
 
     try {
-      const signature = await bookStay(merchantPubkey);
+      if (!hostPubkey) {
+        throw new Error("Listing host unknown — cannot pay.");
+      }
+      const signature = await bookStay(hostPubkey, priceLamports);
       lastSignature.value = signature;
       txStatus.value = "confirming";
 
@@ -102,9 +106,9 @@ export default function BookingModal({ merchantPubkey }: Props) {
         </p>
         <h2 id="booking-title" class="modal__title">{listing.name}</h2>
         <p class="modal__meta">
-          {listing.beds} bed{listing.beds > 1 ? "s" : ""} · {PRICE_SOL_LABEL}
+          {listing.beds} bed{listing.beds > 1 ? "s" : ""} · {priceLabel} flat
           {" "}
-          flat
+          to host
         </p>
         {listing.description && (
           <p class="modal__hint">{listing.description}</p>
@@ -139,6 +143,11 @@ export default function BookingModal({ merchantPubkey }: Props) {
         {!walletAddress.value && (
           <p class="modal__hint">Connect a Devnet wallet to book this stay.</p>
         )}
+        {walletAddress.value && !hostPubkey && (
+          <p class="modal__hint">
+            This listing has no host wallet on record — booking disabled.
+          </p>
+        )}
 
         {txStatus.value !== "done" && (
           <button
@@ -151,7 +160,7 @@ export default function BookingModal({ merchantPubkey }: Props) {
               ? "Approve in wallet…"
               : txStatus.value === "confirming"
               ? "Confirming on Devnet…"
-              : `Book for ${PRICE_SOL_LABEL}`}
+              : `Book for ${priceLabel}`}
           </button>
         )}
 
