@@ -14,3 +14,7 @@ export const DEVNET_RPC_DEFAULT = "https://api.devnet.solana.com";
 /** Fallback merchant pubkey for local demo (Devnet receive-only). Override with MERCHANT_WALLET. */
 export const DEFAULT_MERCHANT_WALLET =
   "8sLLMSxZEJEaAH381YqeBdXzqjxKfSxU36xGaW7b81x5";
+
+/** Deployed SolBnB listing program on Devnet. Override with LISTING_PROGRAM_ID. */
+export const DEFAULT_LISTING_PROGRAM_ID =
+  "FkYg3CaWUoN3Af6BU486X2rLpg4b3ra8gKBPiztd2WJd";

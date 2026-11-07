@@ -3,6 +3,8 @@
  * Never import this module from islands/ or other client bundles.
  */
 
+import { getHostSecrets } from "./hostStore.ts";
+
 export type ListingSecrets = {
   doorCode: string;
   wifiPassword: string;
@@ -41,9 +43,13 @@ export const SECRETS: Record<string, ListingSecrets> = Object.fromEntries(
   }),
 );
 
-/** Resolve secrets for SF defaults or any USA-generated listing id. */
-export function getSecrets(listingId: string): ListingSecrets | null {
+/** Resolve secrets for SF defaults, host pins, or USA-generated listing id. */
+export async function getSecrets(
+  listingId: string,
+): Promise<ListingSecrets | null> {
   if (!listingId.trim()) return null;
+  const hosted = await getHostSecrets(listingId);
+  if (hosted) return hosted;
   if (SECRETS[listingId]) return SECRETS[listingId];
   return secretsFor(listingId, hashSeed(listingId) || 1);
 }

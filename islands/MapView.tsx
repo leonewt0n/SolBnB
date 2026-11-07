@@ -3,7 +3,13 @@ import { IS_BROWSER } from "fresh/runtime";
 import type { Map as LeafletMap, Marker } from "leaflet";
 import type { PublicListing } from "../data/listings.public.ts";
 import { SF_CENTER } from "../lib/constants.ts";
-import { filteredListings, mapTarget, selectListing } from "./store.ts";
+import {
+  creationMode,
+  filteredListings,
+  mapTarget,
+  selectListing,
+  setCreatePin,
+} from "./store.ts";
 
 type LeafletNS = typeof import("leaflet");
 
@@ -19,6 +25,7 @@ export default function MapView() {
   const markersRef = useRef<Marker[]>([]);
   const visible = filteredListings.value;
   const target = mapTarget.value;
+  const creating = creationMode.value;
 
   useEffect(() => {
     if (!IS_BROWSER || !containerRef.current || mapRef.current) return;
@@ -50,6 +57,11 @@ export default function MapView() {
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         }).addTo(map);
 
+        map.on("click", (e) => {
+          if (!creationMode.value) return;
+          setCreatePin(e.latlng.lat, e.latlng.lng);
+        });
+
         mapRef.current = map;
         requestAnimationFrame(() => {
           map.invalidateSize();
@@ -67,6 +79,11 @@ export default function MapView() {
       markersRef.current = [];
     };
   }, []);
+
+  useEffect(() => {
+    if (!IS_BROWSER || !containerRef.current) return;
+    containerRef.current.classList.toggle("map-shell--creating", creating);
+  }, [creating]);
 
   useEffect(() => {
     if (!IS_BROWSER || !mapRef.current || !target) return;

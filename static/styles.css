@@ -75,7 +75,8 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.25rem;
-  background: linear-gradient(180deg, rgba(247, 250, 251, 0.94), rgba(247, 250, 251, 0.72));
+  background: linear-gradient(180deg, rgba(247, 250, 251, 0.94), rgba(247, 250,
+    251, 0.72));
   border-bottom: 1px solid rgba(18, 33, 43, 0.08);
   backdrop-filter: blur(10px);
   z-index: 20;
@@ -176,13 +177,37 @@ a {
   color: var(--ink);
   font-weight: 600;
   white-space: nowrap;
-  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms
+    ease;
 }
 
 .listing-btn:hover {
   border-color: var(--sea);
   background: #fff;
   transform: translateY(-1px);
+}
+
+.listing-btn--active {
+  border-color: var(--coral);
+  background: rgba(196, 92, 45, 0.12);
+  color: var(--coral);
+}
+
+.create-banner {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 0.55rem 1rem;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #fff8f2;
+  background: linear-gradient(120deg, var(--coral), #a84a1c);
+  animation: rise 180ms ease both;
+}
+
+.map-shell--creating {
+  cursor: crosshair;
 }
 
 .wallet-menu {
@@ -490,7 +515,8 @@ a {
   margin-top: 1.1rem;
   padding: 1rem;
   border-radius: 16px;
-  background: linear-gradient(160deg, rgba(15, 106, 106, 0.12), rgba(216, 195, 165, 0.28));
+  background: linear-gradient(160deg, rgba(15, 106, 106, 0.12), rgba(216, 195,
+    165, 0.28));
   animation: rise 360ms ease both;
 }
 

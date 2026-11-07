@@ -27,7 +27,7 @@ export const handler = define.handlers({
       );
     }
 
-    const secrets = getSecrets(listingId);
+    const secrets = await getSecrets(listingId);
     if (!secrets) {
       return Response.json({ error: "Unknown listing" }, { status: 404 });
     }

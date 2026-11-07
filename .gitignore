@@ -5,9 +5,17 @@
 .env.production.local
 .env.local
 
+# Host-created listings + secrets (local durable store)
+data/.host-store.json
+
 # Fresh build directory
 _fresh/
 # npm + other dependencies
 node_modules/
 vendor/
+
+# Anchor / Rust build
+target/
+test-ledger/
+.anchor/
 

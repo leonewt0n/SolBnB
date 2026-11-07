@@ -1,7 +1,4 @@
-import {
-  DEVNET_RPC_DEFAULT,
-  PRICE_LAMPORTS,
-} from "../lib/constants.ts";
+import { DEVNET_RPC_DEFAULT, PRICE_LAMPORTS } from "../lib/constants.ts";
 
 /** Subset of @solana/web3.js used by the booking flow (from CDN IIFE). */
 type SolanaWeb3 = {
@@ -21,8 +18,20 @@ type SolanaWeb3 = {
       commitment?: string,
     ): Promise<{ value: { err: unknown } }>;
   };
-  PublicKey: new (value: string) => { toString(): string };
+  PublicKey: {
+    new (value: string | Uint8Array): {
+      toString(): string;
+      toBuffer(): Uint8Array;
+    };
+    findProgramAddressSync: (
+      seeds: Uint8Array[],
+      // deno-lint-ignore no-explicit-any
+      programId: any,
+      // deno-lint-ignore no-explicit-any
+    ) => [any, number];
+  };
   SystemProgram: {
+    programId: unknown;
     transfer(params: {
       fromPubkey: unknown;
       toPubkey: unknown;
@@ -36,6 +45,11 @@ type SolanaWeb3 = {
   }) => {
     add(...items: unknown[]): unknown;
   };
+  TransactionInstruction: new (opts: {
+    keys: Array<{ pubkey: unknown; isSigner: boolean; isWritable: boolean }>;
+    programId: unknown;
+    data: Uint8Array;
+  }) => unknown;
 };
 
 type SolanaProvider = {
@@ -59,7 +73,7 @@ const WEB3_SCRIPT_ID = "solana-web3-cdn";
 const WEB3_SCRIPT_SRC =
   "https://unpkg.com/@solana/web3.js@1.98.2/lib/index.iife.min.js";
 
-function loadWeb3(): Promise<SolanaWeb3> {
+export function loadWeb3(): Promise<SolanaWeb3> {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("Wallet APIs are browser-only."));
   }

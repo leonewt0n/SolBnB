@@ -1,0 +1,85 @@
+import { define } from "../../utils.ts";
+import { upsertHostRecord } from "../../data/hostStore.ts";
+import { PRICE_LAMPORTS } from "../../lib/constants.ts";
+import type { PublicListing } from "../../data/listings.public.ts";
+
+type Body = {
+  listingId?: string;
+  doorCode?: string;
+  wifiPassword?: string;
+  salt?: string;
+  signature?: string | null;
+  commitmentHex?: string;
+  name?: string;
+  neighborhood?: string;
+  areaCode?: string;
+  beds?: number;
+  lat?: number;
+  lng?: number;
+};
+
+/**
+ * Persists host public pin + door/Wi-Fi off-chain.
+ * Survives refresh and wallet disconnect.
+ */
+export const handler = define.handlers({
+  async POST(ctx) {
+    let body: Body;
+    try {
+      body = await ctx.req.json();
+    } catch {
+      return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const listingId = body.listingId?.trim();
+    const doorCode = body.doorCode?.trim();
+    const wifiPassword = body.wifiPassword?.trim();
+    const name = body.name?.trim();
+    const lat = Number(body.lat);
+    const lng = Number(body.lng);
+
+    if (!listingId || !doorCode || !wifiPassword) {
+      return Response.json(
+        { error: "listingId, doorCode, and wifiPassword are required" },
+        { status: 400 },
+      );
+    }
+
+    if (!name || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return Response.json(
+        { error: "name, lat, and lng are required to persist the pin" },
+        { status: 400 },
+      );
+    }
+
+    if (doorCode.length > 64 || wifiPassword.length > 128) {
+      return Response.json({ error: "Credential too long" }, { status: 400 });
+    }
+
+    const listing: PublicListing = {
+      id: listingId,
+      name,
+      neighborhood: body.neighborhood?.trim() || "Host stay",
+      areaCode: body.areaCode?.trim() || "00000",
+      lat,
+      lng,
+      priceLamports: PRICE_LAMPORTS,
+      beds: Math.max(1, Math.min(8, Number(body.beds) || 1)),
+    };
+
+    await upsertHostRecord({
+      listing,
+      secrets: { doorCode, wifiPassword },
+      salt: body.salt,
+      commitmentHex: body.commitmentHex,
+      signature: body.signature ?? null,
+    });
+
+    return Response.json({
+      ok: true,
+      listing,
+      commitmentHex: body.commitmentHex ?? null,
+      signature: body.signature ?? null,
+    });
+  },
+});

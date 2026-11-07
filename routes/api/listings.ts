@@ -1,8 +1,37 @@
 import { define } from "../../utils.ts";
-import { PUBLIC_LISTINGS } from "../../data/listings.public.ts";
+import { getHostListings } from "../../data/hostStore.ts";
+import { fetchOnChainListings } from "../../lib/onchainListings.ts";
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("RPC timeout")), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      },
+    );
+  });
+}
+
+/** Wallet-created pins only (on-chain + local secrets store). No mock catalog. */
 export const handler = define.handlers({
-  GET() {
-    return Response.json(PUBLIC_LISTINGS);
+  async GET() {
+    let onChain: Awaited<ReturnType<typeof fetchOnChainListings>> = [];
+    try {
+      onChain = await withTimeout(fetchOnChainListings(), 4000);
+    } catch (err) {
+      console.error("Failed to load on-chain listings", err);
+    }
+
+    const hosted = await getHostListings();
+    const byId = new Map(hosted.map((l) => [l.id, l]));
+    for (const l of onChain) byId.set(l.id, l);
+
+    return Response.json([...byId.values()]);
   },
 });

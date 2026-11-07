@@ -1,10 +1,4 @@
-import {
-  query,
-  searchError,
-  searchStatus,
-  searchUsaPlace,
-  localFilterOnly,
-} from "./store.ts";
+import { query, searchError, searchStatus, searchUsaPlace } from "./store.ts";
 
 export default function SearchBar() {
   const busy = searchStatus.value === "searching";
@@ -23,17 +17,15 @@ export default function SearchBar() {
   return (
     <form class="search" onSubmit={runSearch}>
       <label class="search__field">
-        <span class="search__label">Search USA</span>
+        <span class="search__label">Go to</span>
         <input
           class="search__input"
           type="search"
-          placeholder="City, neighborhood, or ZIP anywhere in the USA"
+          placeholder="City, neighborhood, or ZIP"
           value={query.value}
           disabled={busy}
           onInput={(e) => {
             query.value = (e.target as HTMLInputElement).value;
-            // Typing filters pins in the current map area.
-            localFilterOnly.value = true;
             searchError.value = null;
           }}
         />
