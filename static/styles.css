@@ -244,22 +244,6 @@ a {
   }
 }
 
-.rail {
-  position: absolute;
-  z-index: 10;
-  top: 1rem;
-  left: 1rem;
-  width: min(20rem, calc(100% - 2rem));
-  max-height: calc(100% - 2rem);
-  overflow: auto;
-  padding: 0.9rem;
-  border-radius: var(--radius);
-  background: var(--panel);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(12px);
-  animation: rise 480ms ease both;
-}
-
 @keyframes rise {
   from {
     opacity: 0;
@@ -269,46 +253,6 @@ a {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.rail__count {
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(18, 33, 43, 0.55);
-  margin-bottom: 0.6rem;
-}
-
-.rail__list {
-  list-style: none;
-  display: grid;
-  gap: 0.45rem;
-}
-
-.rail__item {
-  width: 100%;
-  text-align: left;
-  border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.55);
-  border-radius: 12px;
-  padding: 0.7rem 0.8rem;
-  display: grid;
-  gap: 0.15rem;
-  transition: border-color 160ms ease, background 160ms ease;
-}
-
-.rail__item strong {
-  font-size: 0.95rem;
-}
-
-.rail__item span {
-  font-size: 0.78rem;
-  color: rgba(18, 33, 43, 0.62);
-}
-
-.rail__item:hover {
-  border-color: rgba(15, 106, 106, 0.35);
-  background: #fff;
 }
 
 .modal-backdrop {
@@ -501,11 +445,5 @@ a {
     max-width: none;
     order: 2;
     flex: 1 1 100%;
-  }
-
-  .rail {
-    top: auto;
-    bottom: 1rem;
-    max-height: 32vh;
   }
 }

@@ -1,7 +1,6 @@
 import type { PublicListing } from "../data/listings.public.ts";
 import { listings, placeLabel } from "./store.ts";
 import BookingModal from "./BookingModal.tsx";
-import ListingRail from "./ListingRail.tsx";
 import MapView from "./MapView.tsx";
 import SearchBar from "./SearchBar.tsx";
 import WalletButton from "./WalletButton.tsx";
@@ -39,7 +38,6 @@ export default function AppShell(
 
       <main class="stage">
         <MapView />
-        <ListingRail />
       </main>
 
       <BookingModal merchantPubkey={merchantPubkey} />
