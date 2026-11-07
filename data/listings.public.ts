@@ -9,6 +9,8 @@ export type PublicListing = {
   lng: number;
   priceLamports: number;
   beds: number;
+  /** Host wallet that created the listing (when known). */
+  hostPubkey?: string;
 };
 
 const STYLES = [
@@ -77,7 +79,9 @@ export function buildListingsAround(opts: {
   count?: number;
 }): PublicListing[] {
   const count = opts.count ?? 20;
-  const seed = hashSeed(`${opts.lat.toFixed(4)},${opts.lng.toFixed(4)},${opts.label}`);
+  const seed = hashSeed(
+    `${opts.lat.toFixed(4)},${opts.lng.toFixed(4)},${opts.label}`,
+  );
   const rand = mulberry32(seed);
   const prefix = slugify(opts.neighborhood || opts.label);
   const listings: PublicListing[] = [];

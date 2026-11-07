@@ -78,6 +78,7 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
       const listingId = result.listingPda;
       const signature = result.signature;
 
+      const hostPubkey = walletAddress.value ?? undefined;
       const listingPayload = {
         listingId,
         name: name.trim(),
@@ -90,6 +91,7 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
         wifiPassword: wifiPassword.trim(),
         salt,
         signature,
+        hostPubkey,
         commitmentHex: [...commitment]
           .map((b) => b.toString(16).padStart(2, "0"))
           .join(""),
@@ -113,6 +115,7 @@ export default function ListingModal({ listingProgramId = "" }: Props) {
         beds,
         lat: pin.lat,
         lng: pin.lng,
+        hostPubkey,
       });
 
       cancelCreateListing();

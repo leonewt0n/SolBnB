@@ -55,7 +55,9 @@ type SolanaWeb3 = {
 type SolanaProvider = {
   isPhantom?: boolean;
   publicKey?: { toString(): string };
-  connect(): Promise<{ publicKey: { toString(): string } }>;
+  connect(opts?: {
+    onlyIfTrusted?: boolean;
+  }): Promise<{ publicKey: { toString(): string } }>;
   disconnect?: () => Promise<void>;
   // deno-lint-ignore no-explicit-any
   signAndSendTransaction(transaction: any): Promise<{ signature: string }>;
@@ -116,6 +118,31 @@ export function getWalletProvider(): SolanaProvider | null {
   return window.solana ?? null;
 }
 
+/** Wait for Phantom/Backpack inject (often after first paint on a new page). */
+export function waitForWalletProvider(
+  timeoutMs = 2500,
+): Promise<SolanaProvider | null> {
+  const existing = getWalletProvider();
+  if (existing) return Promise.resolve(existing);
+
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const tick = () => {
+      const provider = getWalletProvider();
+      if (provider) {
+        resolve(provider);
+        return;
+      }
+      if (Date.now() - start >= timeoutMs) {
+        resolve(null);
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  });
+}
+
 export async function connectWallet(): Promise<string> {
   const provider = getWalletProvider();
   if (!provider) {
@@ -123,6 +150,26 @@ export async function connectWallet(): Promise<string> {
   }
   const res = await provider.connect();
   return res.publicKey.toString();
+}
+
+/**
+ * Silent reconnect after navigation/refresh.
+ * Uses onlyIfTrusted so Phantom does not pop a connect modal.
+ */
+export async function restoreWalletSession(): Promise<string | null> {
+  const provider = await waitForWalletProvider();
+  if (!provider) return null;
+
+  if (provider.publicKey) {
+    return provider.publicKey.toString();
+  }
+
+  try {
+    const res = await provider.connect({ onlyIfTrusted: true });
+    return res.publicKey.toString();
+  } catch {
+    return null;
+  }
 }
 
 export async function disconnectWallet(): Promise<void> {

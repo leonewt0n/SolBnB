@@ -36,7 +36,8 @@ function decodeListingAccount(
   try {
     const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
     let o = 8; // skip discriminator
-    o += 32; // host pubkey (not needed for map pin)
+    const hostPubkey = new PublicKey(raw.subarray(o, o + 32)).toBase58();
+    o += 32;
 
     const nameLen = view.getUint32(o, true);
     o += 4;
@@ -60,6 +61,7 @@ function decodeListingAccount(
       lng,
       priceLamports: PRICE_LAMPORTS,
       beds: 1,
+      hostPubkey,
     };
   } catch {
     return null;

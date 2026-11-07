@@ -16,6 +16,7 @@ type Body = {
   beds?: number;
   lat?: number;
   lng?: number;
+  hostPubkey?: string;
 };
 
 /**
@@ -56,6 +57,7 @@ export const handler = define.handlers({
       return Response.json({ error: "Credential too long" }, { status: 400 });
     }
 
+    const hostPubkey = body.hostPubkey?.trim();
     const listing: PublicListing = {
       id: listingId,
       name,
@@ -65,6 +67,7 @@ export const handler = define.handlers({
       lng,
       priceLamports: PRICE_LAMPORTS,
       beds: Math.max(1, Math.min(8, Number(body.beds) || 1)),
+      ...(hostPubkey ? { hostPubkey } : {}),
     };
 
     await upsertHostRecord({

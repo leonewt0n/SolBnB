@@ -1,9 +1,15 @@
 import { useEffect } from "preact/hooks";
 import { IS_BROWSER } from "fresh/runtime";
-import { connectWallet, disconnectWallet, getWalletProvider } from "./pay.ts";
 import {
+  connectWallet,
+  disconnectWallet,
+  getWalletProvider,
+  restoreWalletSession,
+} from "./pay.ts";
+import {
+  hydrateWalletAddress,
   logoutWallet,
-  openAccount,
+  setWalletAddress,
   walletAddress,
   walletMenuOpen,
 } from "./store.ts";
@@ -15,6 +21,18 @@ function shorten(addr: string) {
 export default function WalletButton() {
   useEffect(() => {
     if (!IS_BROWSER) return;
+
+    // Survive Fresh full-page navigations (signals reset each load).
+    hydrateWalletAddress();
+
+    let cancelled = false;
+    (async () => {
+      const addr = await restoreWalletSession();
+      if (cancelled) return;
+      if (addr) setWalletAddress(addr);
+      else setWalletAddress(null);
+    })();
+
     function onDocClick(e: MouseEvent) {
       const target = e.target as HTMLElement | null;
       if (!target?.closest(".wallet-menu")) {
@@ -22,13 +40,16 @@ export default function WalletButton() {
       }
     }
     document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("click", onDocClick);
+    };
   }, []);
 
   async function onConnect() {
     try {
       const addr = await connectWallet();
-      walletAddress.value = addr;
+      setWalletAddress(addr);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Wallet connection failed");
     }
@@ -69,14 +90,16 @@ export default function WalletButton() {
         </button>
         {menuOpen && (
           <div class="wallet-menu__panel" role="menu">
-            <button
-              type="button"
+            <a
               class="wallet-menu__item"
               role="menuitem"
-              onClick={openAccount}
+              href="/dashboard"
+              onClick={() => {
+                walletMenuOpen.value = false;
+              }}
             >
               Account
-            </button>
+            </a>
             <button
               type="button"
               class="wallet-menu__item wallet-menu__item--danger"

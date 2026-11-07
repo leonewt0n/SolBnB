@@ -1,12 +1,13 @@
 import { PRICE_SOL_LABEL } from "../lib/constants.ts";
 import { bookStay } from "./pay.ts";
 import {
+  addBooking,
   checkIn,
   checkOut,
   lastSignature,
   resetBookingUi,
-  selectListing,
   selected,
+  selectListing,
   txError,
   txStatus,
   unlock,
@@ -54,6 +55,20 @@ export default function BookingModal({ merchantPubkey }: Props) {
 
       unlock.value = await res.json();
       txStatus.value = "done";
+
+      const renter = walletAddress.value;
+      if (renter) {
+        addBooking({
+          listingId: listing!.id,
+          name: listing!.name,
+          neighborhood: listing!.neighborhood,
+          beds: listing!.beds,
+          checkIn: checkIn.value,
+          checkOut: checkOut.value,
+          signature,
+          renterPubkey: renter,
+        });
+      }
     } catch (err) {
       txStatus.value = "error";
       txError.value = err instanceof Error ? err.message : "Booking failed";
@@ -67,7 +82,12 @@ export default function BookingModal({ merchantPubkey }: Props) {
         if (e.target === e.currentTarget) selectListing(null);
       }}
     >
-      <aside class="modal" role="dialog" aria-modal="true" aria-labelledby="booking-title">
+      <aside
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="booking-title"
+      >
         <button
           class="modal__close"
           type="button"
@@ -77,10 +97,14 @@ export default function BookingModal({ merchantPubkey }: Props) {
           ×
         </button>
 
-        <p class="modal__eyebrow">{listing.neighborhood} · {listing.areaCode}</p>
+        <p class="modal__eyebrow">
+          {listing.neighborhood} · {listing.areaCode}
+        </p>
         <h2 id="booking-title" class="modal__title">{listing.name}</h2>
         <p class="modal__meta">
-          {listing.beds} bed{listing.beds > 1 ? "s" : ""} · {PRICE_SOL_LABEL} flat
+          {listing.beds} bed{listing.beds > 1 ? "s" : ""} · {PRICE_SOL_LABEL}
+          {" "}
+          flat
         </p>
 
         <div class="dates">

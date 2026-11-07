@@ -23,7 +23,21 @@ export const selected = signal<PublicListing | null>(null);
 export const query = signal("");
 
 const HOST_STORAGE_KEY = "solbnb-host-listings";
+const WALLET_STORAGE_KEY = "solbnb-wallet";
+const BOOKING_STORAGE_KEY = "solbnb-bookings";
 let hostsHydrated = false;
+
+export type BookingRecord = {
+  id: string;
+  listingId: string;
+  name: string;
+  neighborhood: string;
+  beds: number;
+  checkIn: string;
+  checkOut: string;
+  signature: string;
+  renterPubkey: string;
+};
 
 function readHostStorage(): PublicListing[] {
   if (typeof localStorage === "undefined") return [];
@@ -46,13 +60,27 @@ function writeHostStorage(items: PublicListing[]) {
   }
 }
 
+function mergeListing(
+  prev: PublicListing | undefined,
+  next: PublicListing,
+): PublicListing {
+  if (!prev) return next;
+  return {
+    ...prev,
+    ...next,
+    hostPubkey: next.hostPubkey ?? prev.hostPubkey,
+  };
+}
+
 export function hydrateHostListings(fromServer: PublicListing[]) {
   if (hostsHydrated) return;
   hostsHydrated = true;
   const local = readHostStorage();
   const byId = new Map<string, PublicListing>();
   for (const l of local) byId.set(l.id, l);
-  for (const l of fromServer) byId.set(l.id, l);
+  for (const l of fromServer) {
+    byId.set(l.id, mergeListing(byId.get(l.id), l));
+  }
   hostListings.value = [...byId.values()];
   writeHostStorage(hostListings.value);
 }
@@ -61,7 +89,9 @@ export function hydrateHostListings(fromServer: PublicListing[]) {
 export function mergeHostListings(incoming: PublicListing[]) {
   if (incoming.length === 0) return;
   const byId = new Map(hostListings.value.map((l) => [l.id, l]));
-  for (const l of incoming) byId.set(l.id, l);
+  for (const l of incoming) {
+    byId.set(l.id, mergeListing(byId.get(l.id), l));
+  }
   const next = [...byId.values()];
   hostListings.value = next;
   writeHostStorage(next);
@@ -77,6 +107,79 @@ export const walletAddress = signal<string | null>(null);
 export const walletMenuOpen = signal(false);
 export const accountOpen = signal(false);
 export const listingOpen = signal(false);
+
+function readWalletStorage(): string | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    return localStorage.getItem(WALLET_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeWalletStorage(addr: string | null) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    if (addr) localStorage.setItem(WALLET_STORAGE_KEY, addr);
+    else localStorage.removeItem(WALLET_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/** Optimistic restore so UI stays connected across Fresh page loads. */
+export function hydrateWalletAddress() {
+  if (walletAddress.value) return;
+  const stored = readWalletStorage();
+  if (stored) walletAddress.value = stored;
+}
+
+export function setWalletAddress(addr: string | null) {
+  walletAddress.value = addr;
+  writeWalletStorage(addr);
+}
+
+function readBookingStorage(): BookingRecord[] {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(BOOKING_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed as BookingRecord[] : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeBookingStorage(items: BookingRecord[]) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(items));
+  } catch {
+    // ignore
+  }
+}
+
+export function addBooking(input: Omit<BookingRecord, "id">): BookingRecord {
+  const record: BookingRecord = {
+    ...input,
+    id: `${input.listingId}-${input.signature.slice(0, 12)}`,
+  };
+  const next = [
+    record,
+    ...readBookingStorage().filter((b) => b.id !== record.id),
+  ];
+  writeBookingStorage(next);
+  return record;
+}
+
+export function bookingsForWallet(renterPubkey: string): BookingRecord[] {
+  return readBookingStorage().filter((b) => b.renterPubkey === renterPubkey);
+}
+
+export function listingsForHost(hostPubkey: string): PublicListing[] {
+  return hostListings.value.filter((l) => l.hostPubkey === hostPubkey);
+}
 
 export const creationMode = signal(false);
 export const pendingPin = signal<{ lat: number; lng: number } | null>(null);
@@ -131,7 +234,7 @@ export function cancelCreateListing() {
 }
 
 export function logoutWallet() {
-  walletAddress.value = null;
+  setWalletAddress(null);
   walletMenuOpen.value = false;
   accountOpen.value = false;
 }
@@ -144,6 +247,7 @@ export function addHostListing(input: {
   lat: number;
   lng: number;
   id?: string;
+  hostPubkey?: string;
 }): PublicListing {
   const slug = input.name
     .toLowerCase()
@@ -159,6 +263,7 @@ export function addHostListing(input: {
     lng: input.lng,
     priceLamports: PRICE_LAMPORTS,
     beds: Math.max(1, Math.min(8, input.beds || 1)),
+    hostPubkey: input.hostPubkey,
   };
   const next = [
     listing,
