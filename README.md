@@ -2,12 +2,14 @@
 
 [![Free image uploader - myimgs.org](https://myimgs.org/storage/images/79208/Screenshot2026-11-06at15319PM.png)](https://myimgs.org/)
 
-A decentralized short-term rental demo on **Solana Devnet**. Connect a wallet,
-browse mock San Francisco stays on OpenStreetMap, pay **0.001 SOL**, and unlock
-a door code + Wi-Fi password after on-chain confirmation.
+**Your Home On Solana.** A decentralized short-term rental demo on **Solana
+Devnet**. Hosts pin stays on an OpenStreetMap map, publish them as on-chain
+**Listing** PDAs, and set their own price. Guests connect a wallet, book with
+SOL (min **0.001 SOL**), and unlock a **door code** + **Wi-Fi password** after
+payment is verified on-chain.
 
-Built with **Fresh (Deno + Preact)**, **Leaflet / OSM**, and
-**@solana/web3.js**.
+Built with **Fresh (Deno + Preact)**, **Leaflet / OSM**, **@solana/web3.js**,
+and an **Anchor** listing program under `programs/solbnb`.
 
 ## Prerequisites
 
@@ -15,41 +17,66 @@ Built with **Fresh (Deno + Preact)**, **Leaflet / OSM**, and
 - Phantom or Backpack browser wallet switched to
   [**Devnet**](https://docs.phantom.com/developer-powertools/testnet-mode)
 - Devnet SOL from the [Solana faucet](https://faucet.solana.com/)
+  (guests need SOL to book; hosts also need rent for the Listing account)
 
 ## Setup
 
 ```bash
 cp .env.example .env
-# Set MERCHANT_WALLET to YOUR Devnet pubkey so you receive the demo payments
+# MERCHANT_WALLET receives the 10% platform fee — use YOUR Devnet pubkey
 deno install
 deno task dev
 ```
 
 Open http://localhost:8000 (or the URL printed in the terminal).
 
-> Tip: put your Phantom Devnet address in `MERCHANT_WALLET` so the `0.001 SOL`
-> bookings land in a wallet you control.
+| Variable             | Purpose                                              |
+| -------------------- | ---------------------------------------------------- |
+| `MERCHANT_WALLET`    | Platform fee receive pubkey (public key only)        |
+| `RPC_URL`            | Optional; defaults to public Devnet                  |
+| `LISTING_PROGRAM_ID` | Anchor listing program (Devnet default in `.env.example`) |
 
 ## Demo flow
 
+### Book a stay
+
 1. Click **Connect Wallet** (Phantom/Backpack on Devnet).
-2. Search pans the map (no mock pins). Click a wallet-created pin to book.
-3. Choose check-in / check-out dates.
-4. Pay **0.001 SOL** and approve the wallet popup.
-5. After confirmation, the UI reveals the **door code** and **Wi-Fi password**.
+2. Search pans the map (USA places via `/api/geocode`) — it does not invent pins.
+3. Click a host-created pin → pick check-in / check-out dates.
+4. Pay the host’s listed price (minimum **0.001 SOL**). The wallet sends
+   **90% to the host** and **10% to `MERCHANT_WALLET`**.
+5. After confirmation, `POST /api/unlock` reveals the **Door code** and
+   **Wi-Fi**. Bookings are remembered in the browser for the dashboard.
 
-### Host a stay
+Hosts cannot book their own listing — manage it from the dashboard instead.
 
-1. Connect wallet → **List**.
-2. Click the map to drop an exact GPS pin.
-3. Enter title, door passkey, and Wi-Fi password.
-4. Approve the wallet popup — GPS + name land in a Devnet **Listing** PDA
-   (`LISTING_PROGRAM_ID`). Door / Wi-Fi stay server-side and unlock through
-   `POST /api/unlock` after payment. Refresh reloads pins via
-   `getProgramAccounts`.
+### List a stay
 
-Door/Wi-Fi secrets are stored server-side and only returned from
-`POST /api/unlock` after the Devnet transfer is verified.
+1. Connect wallet → **List** → click the map to drop a GPS pin
+   (or **Cancel pin**).
+2. Enter title, description, price (SOL), beds, door passkey, and Wi-Fi password.
+3. Approve **Sign & publish on-chain** — public fields land in a Devnet
+   **Listing** PDA (`LISTING_PROGRAM_ID`); door / Wi-Fi stay server-side.
+4. Refresh reloads pins via `GET /api/listings` (`getProgramAccounts`).
+
+### Host dashboard
+
+Open **Account** from the wallet menu (or visit `/dashboard`):
+
+- **Properties Listed** — edit price/details/secrets, or delete (closes the PDA
+  and clears server secrets).
+- **Properties Renting** — stays you’ve booked, with Explorer tx links.
+
+## How it works
+
+| Layer        | Behavior |
+| ------------ | -------- |
+| On-chain     | Listing PDA: host, name, lat/lng, price, secrets commitment, nonce |
+| Payments     | Direct SOL transfers (no escrow); 90% host / 10% platform          |
+| Server       | Door / Wi-Fi in the host store; returned only after payment verify |
+| Client       | Map + modals; listings refresh from `/api/listings` after load     |
+
+Never import `data/listings.secrets.ts` or the host store from islands.
 
 ## Scripts
 
@@ -63,19 +90,22 @@ Door/Wi-Fi secrets are stored server-side and only returned from
 ## Project layout
 
 ```
-components/          # (optional) static Preact components
-data/                # public listings + server-only secrets
-islands/             # Wallet, Map, Booking, AppShell
-lib/                 # Solana connection + payment verification
-routes/              # pages + /api/listings + /api/unlock
+data/                # public listing types + server host store / secrets
+islands/             # AppShell, map, booking, list/edit, dashboard, wallet
+lib/                 # constants, Solana RPC, on-chain decode, payment verify
+programs/solbnb/     # Anchor Listing program (Devnet)
+routes/              # / , /dashboard , /api/{listings,unlock,host-secrets,geocode}
+static/              # styles + assets
 ```
 
 ## Notes
 
-- Every listing costs exactly `1_000_000` lamports (`0.001 SOL`) on Devnet —
-  enough to create the merchant account if needed.
-- This is a hackathon prototype: no escrow program, no real locks.
-- Never import `data/listings.secrets.ts` from islands.
+- Minimum booking price is `1_000_000` lamports (`0.001 SOL`); hosts set the
+  actual price on-chain.
+- Platform fee is `1000` bps (10%) via `PLATFORM_FEE_BPS`.
+- Hackathon prototype: no escrow program, no real locks, dates are UI-only.
+- Default Devnet program id:
+  `FkYg3CaWUoN3Af6BU486X2rLpg4b3ra8gKBPiztd2WJd`.
 
 ## License
 
